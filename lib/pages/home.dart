@@ -1,12 +1,41 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../widgets/confirm_exit_dialog.dart';
+import 'alerts.dart' show AlertaMock;
+import 'dashboard.dart' show DashboardPage;
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  // Os 3 alertas mais recentes — em produção seria o topo da mesma
+  // lista usada no ecrã de Alertas, ordenada por criadoEm.
+  static const List<AlertaMock> alertasRecentes = [
+    AlertaMock(
+      descricao: "A IA detectou uma falha no Equipamento 32",
+      nivel: "critico",
+      equipamento: "Gerador Portuário GP-07",
+      criadoEm: "19:30",
+    ),
+    AlertaMock(
+      descricao: "Necessária manutenção preventiva no Setor 5",
+      nivel: "medio",
+      equipamento: "Esteira de Contentores EC-02",
+      criadoEm: "19:25",
+    ),
+    AlertaMock(
+      descricao: "Novo firmware disponível para o equipamento",
+      nivel: "razoavel",
+      equipamento: "Sistema de Pesagem SP-03",
+      criadoEm: "18:50",
+      lido: true,
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    const percentOperacional =
+        DashboardPage.equipamentosOperacionais / DashboardPage.totalEquipamentos;
+
     return Container(
       color: AppColors.background,
       child: SafeArea(
@@ -52,7 +81,7 @@ class HomePage extends StatelessWidget {
                         color: AppColors.accent.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(18),
                       ),
-                      child: const Text('Análises recentes',
+                      child: const Text('Alertas recentes',
                           style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w500)),
                     ),
                   ),
@@ -75,7 +104,7 @@ class HomePage extends StatelessWidget {
                             cursorColor: AppColors.accent,
                             decoration: const InputDecoration(
                               icon: Icon(Icons.search, color: AppColors.textSecondary, size: 20),
-                              hintText: "Pesquisar...",
+                              hintText: "Pesquisar equipamento ou alerta...",
                               hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.symmetric(vertical: 14),
@@ -103,28 +132,20 @@ class HomePage extends StatelessWidget {
                     children: [
                       _chip('Todos'),
                       const SizedBox(width: 10),
-                      _chip('Hoje'),
+                      _chip('Críticos'),
                       const SizedBox(width: 10),
-                      _chip('Ontem'),
-                      const SizedBox(width: 10),
-                      _chip('Semana'),
+                      _chip('Não lidos'),
                     ],
                   ),
                 ],
               ),
             ),
 
-            // Conteúdo (exemplo)
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
                 children: [
-                  _alertCard('Material danificado identificado',
-                      'A IA detectou uma falha no equipamento A32', '19:30'),
-                  _alertCard('Material danificado identificado',
-                      'A IA detectou uma falha no equipamento A32', '19:25'),
-                  _alertCard('Material danificado identificado',
-                      'A IA detectou uma falha no equipamento A32', '19:25'),
+                  ...alertasRecentes.map(_alertCard),
                   const SizedBox(height: 12),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,7 +166,7 @@ class HomePage extends StatelessWidget {
                                 children: [
                                   Icon(Icons.sensors_rounded, size: 16, color: AppColors.textSecondary),
                                   SizedBox(width: 6),
-                                  Text('Equipamentos\nMonitorados',
+                                  Text('Equipamentos\nOperacionais',
                                       style: TextStyle(
                                           color: AppColors.textPrimary,
                                           fontWeight: FontWeight.w600,
@@ -165,43 +186,32 @@ class HomePage extends StatelessWidget {
                                         value: 1,
                                         strokeWidth: 10,
                                         backgroundColor: Colors.white.withOpacity(0.06),
-                                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.transparent),
+                                        valueColor:
+                                            const AlwaysStoppedAnimation<Color>(Colors.transparent),
                                       ),
                                     ),
                                     SizedBox(
                                       height: 100,
                                       width: 100,
                                       child: CircularProgressIndicator(
-                                        value: 0.62,
+                                        value: percentOperacional,
                                         strokeWidth: 10,
-                                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accent),
+                                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
                                         backgroundColor: Colors.transparent,
                                       ),
                                     ),
-                                    Transform.rotate(
-                                      angle: 2.2,
-                                      child: SizedBox(
-                                        height: 100,
-                                        width: 100,
-                                        child: CircularProgressIndicator(
-                                          value: 0.23,
-                                          strokeWidth: 10,
-                                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
-                                          backgroundColor: Colors.transparent,
-                                        ),
-                                      ),
-                                    ),
-                                    const Column(
+                                    Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Text('185',
+                                        const Text('${DashboardPage.totalEquipamentos}',
                                             style: TextStyle(
                                                 color: AppColors.textPrimary,
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.w800)),
-                                        SizedBox(height: 2),
-                                        Text('Equipamentos',
-                                            style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                                        const SizedBox(height: 2),
+                                        Text('${(percentOperacional * 100).round()}% operacional',
+                                            style: const TextStyle(
+                                                color: AppColors.textSecondary, fontSize: 12)),
                                       ],
                                     ),
                                   ],
@@ -237,13 +247,13 @@ class HomePage extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('11',
+                                    Text('${DashboardPage.alertasCriticos}',
                                         style: TextStyle(
-                                            color: AppColors.textPrimary,
+                                            color: AppColors.danger,
                                             fontSize: 26,
                                             fontWeight: FontWeight.w800)),
                                     SizedBox(height: 6),
-                                    Text('Falhas\nde Hoje',
+                                    Text('Alertas\nCríticos',
                                         style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
                                   ],
                                 ),
@@ -263,13 +273,13 @@ class HomePage extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('6',
+                                    Text('${DashboardPage.alertasNaoLidos}',
                                         style: TextStyle(
                                             color: AppColors.textPrimary,
                                             fontSize: 26,
                                             fontWeight: FontWeight.w800)),
                                     SizedBox(height: 6),
-                                    Text('Alertas\nde Hoje',
+                                    Text('Alertas\nNão Lidos',
                                         style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
                                   ],
                                 ),
@@ -299,20 +309,21 @@ class HomePage extends StatelessWidget {
         child: Text(text, style: const TextStyle(color: AppColors.textSecondary)),
       );
 
-  Widget _alertCard(String title, String subtitle, String time) {
+  Widget _alertCard(AlertaMock alerta) {
+    final cor = AppColors.nivelAlerta(alerta.nivel);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: AppColors.panel,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.panelBorder),
+        border: Border.all(color: alerta.lido ? AppColors.panelBorder : cor.withOpacity(0.5)),
       ),
       child: ListTile(
-        leading: const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 28),
-        title: Text(title,
+        leading: Icon(Icons.warning_amber_rounded, color: cor, size: 28),
+        title: Text(alerta.equipamento,
             style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
-        subtitle: Text(subtitle, style: const TextStyle(color: AppColors.textSecondary)),
-        trailing: Text(time, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        subtitle: Text(alerta.descricao, style: const TextStyle(color: AppColors.textSecondary)),
+        trailing: Text(alerta.criadoEm, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
       ),
     );
   }

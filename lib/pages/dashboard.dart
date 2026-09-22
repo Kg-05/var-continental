@@ -2,11 +2,23 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../widgets/confirm_exit_dialog.dart';
 
+/// Valores fictícios (ainda sem ligação à API), mas agora mapeados aos
+/// campos reais do backend: Equipamento.status (Operacional|Manutencao),
+/// Alerta.nivel (razoavel|medio|critico) e Alerta.lidoEm.
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
+  static const int totalEquipamentos = 38;
+  static const int equipamentosOperacionais = 31;
+  static const int equipamentosManutencao = 4;
+  static const int equipamentosComAlertas = 9;
+  static const int alertasCriticos = 3;
+  static const int alertasNaoLidos = 5;
+
   @override
   Widget build(BuildContext context) {
+    final percentOperacional = equipamentosOperacionais / totalEquipamentos;
+
     return Container(
       color: AppColors.background,
       child: SafeArea(
@@ -45,33 +57,35 @@ class DashboardPage extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 children: [
                   _cardLarge(
-                    value: '230',
+                    value: '$totalEquipamentos',
                     title: 'Total de Equipamentos\nMonitorados',
-                    progress: 0.75,
+                    progress: percentOperacional,
+                    trailing: '${(percentOperacional * 100).round()}% operacional',
                   ),
                   const SizedBox(height: 10),
                   _cardLarge(
-                    value: '180',
-                    title: 'Equipamentos\nInspecionados pela IA',
-                    progress: 0.55,
-                    trailing: '15',
+                    value: '$equipamentosComAlertas',
+                    title: 'Equipamentos com\nAlertas por Resolver',
+                    progress: equipamentosComAlertas / totalEquipamentos,
                   ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
                         child: _cardSmallIcon(
-                          value: '24',
-                          title: 'Alertas\nRegistradas',
-                          icon: Icons.show_chart,
+                          value: '$alertasCriticos',
+                          title: 'Alertas\nCríticos',
+                          icon: Icons.report_problem_rounded,
+                          accent: AppColors.danger,
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: _cardSmallIcon(
-                          value: '8',
-                          title: 'Falhas\nConfirmadas',
-                          icon: Icons.warning_amber_rounded,
+                          value: '$alertasNaoLidos',
+                          title: 'Alertas\nNão Lidos',
+                          icon: Icons.mark_email_unread_rounded,
+                          accent: AppColors.accent,
                         ),
                       ),
                     ],
@@ -91,10 +105,16 @@ class DashboardPage extends StatelessWidget {
                             border: Border.all(color: AppColors.panelBorder),
                           ),
                           padding: const EdgeInsets.all(16),
-                          child: const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text('Uptime Médio\nGeral (%)',
-                                style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Distribuição\npor Estado',
+                                  style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
+                              const Spacer(),
+                              _legendaEstado('Operacional', equipamentosOperacionais, AppColors.success),
+                              const SizedBox(height: 4),
+                              _legendaEstado('Manutenção', equipamentosManutencao, AppColors.warning),
+                            ],
                           ),
                         ),
                       ),
@@ -108,7 +128,7 @@ class DashboardPage extends StatelessWidget {
                             border: Border.all(color: AppColors.panelBorder),
                           ),
                           padding: const EdgeInsets.all(14),
-                          child: _gauge96(),
+                          child: _gaugeOperacional(percentOperacional),
                         ),
                       ),
                     ],
@@ -119,6 +139,19 @@ class DashboardPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _legendaEstado(String label, int valor, Color cor) {
+    return Row(
+      children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: cor, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+        ),
+        Text('$valor', style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
+      ],
     );
   }
 
@@ -147,7 +180,7 @@ class DashboardPage extends StatelessWidget {
               if (trailing != null)
                 Text(trailing,
                     style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 16, fontWeight: FontWeight.w600)),
+                        color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 30),
@@ -173,6 +206,7 @@ class DashboardPage extends StatelessWidget {
     required String value,
     required String title,
     required IconData icon,
+    required Color accent,
   }) {
     return Container(
       height: 95,
@@ -199,7 +233,7 @@ class DashboardPage extends StatelessWidget {
           ),
           Align(
             alignment: Alignment.topRight,
-            child: Icon(icon, color: AppColors.accent, size: 22),
+            child: Icon(icon, color: accent, size: 22),
           ),
         ],
       ),
@@ -221,10 +255,10 @@ class DashboardPage extends StatelessWidget {
             height: 46,
             width: 46,
             decoration: const BoxDecoration(
-              color: AppColors.accent,
+              color: AppColors.warning,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.pie_chart, color: Colors.white),
+            child: const Icon(Icons.build_rounded, color: Colors.white),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -232,14 +266,14 @@ class DashboardPage extends StatelessWidget {
                 style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
           ),
           const SizedBox(width: 8),
-          const Text('10',
+          const Text('$equipamentosManutencao',
               style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w800)),
         ],
       ),
     );
   }
 
-  Widget _gauge96() {
+  Widget _gaugeOperacional(double percent) {
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -253,18 +287,19 @@ class DashboardPage extends StatelessWidget {
             valueColor: const AlwaysStoppedAnimation<Color>(Colors.transparent),
           ),
         ),
-        const SizedBox(
+        SizedBox(
           height: 90,
           width: 90,
           child: CircularProgressIndicator(
-            value: 0.96,
+            value: percent,
             strokeWidth: 10,
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
             backgroundColor: Colors.transparent,
           ),
         ),
-        const Text('96%',
-            style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w800)),
+        Text('${(percent * 100).round()}%',
+            style: const TextStyle(
+                color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w800)),
       ],
     );
   }

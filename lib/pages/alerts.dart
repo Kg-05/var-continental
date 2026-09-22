@@ -2,6 +2,25 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../widgets/confirm_exit_dialog.dart';
 
+/// Espelha o modelo Alerta do backend: descricao, nivel
+/// (razoavel|medio|critico), equipamento associado e lidoEm (null = não lido).
+/// Os valores aqui continuam fictícios — a estrutura é que é real.
+class AlertaMock {
+  final String descricao;
+  final String nivel;
+  final String equipamento;
+  final String criadoEm;
+  final bool lido;
+
+  const AlertaMock({
+    required this.descricao,
+    required this.nivel,
+    required this.equipamento,
+    required this.criadoEm,
+    this.lido = false,
+  });
+}
+
 class AlertsPage extends StatefulWidget {
   const AlertsPage({super.key});
 
@@ -10,82 +29,88 @@ class AlertsPage extends StatefulWidget {
 }
 
 class _AlertsPageState extends State<AlertsPage> {
-  final List<Map<String, String>> notificacoes = [
-    {
-      "titulo": "Material Identificado!",
-      "mensagem": "A IA detectou uma falha no Equipamento 32",
-      "data": "12:30"
-    },
-    {
-      "titulo": "Aviso Urgente",
-      "mensagem": "Necessária manutenção preventiva no Setor 5",
-      "data": "Ontem"
-    },
-    {
-      "titulo": "Atualização",
-      "mensagem": "Novo firmware disponível para o Equipamento 10",
-      "data": "08:00"
-    },
-    {
-      "titulo": "Sensor Desativado",
-      "mensagem": "O sensor de temperatura do Setor 3 foi desligado",
-      "data": "09:15"
-    },
-    {
-      "titulo": "Alerta de Segurança",
-      "mensagem": "Acesso não autorizado detectado na área restrita",
-      "data": "07:45"
-    },
-    {
-      "titulo": "Manutenção Concluída",
-      "mensagem": "O Equipamento 21 voltou a funcionar normalmente",
-      "data": "Anteontem"
-    },
-    {
-      "titulo": "Falha de Conexão",
-      "mensagem": "Perda de comunicação com o servidor central",
-      "data": "13:20"
-    },
-    {
-      "titulo": "Capacidade Máxima",
-      "mensagem": "O tanque de armazenamento atingiu 95% da capacidade",
-      "data": "14:00"
-    },
-    {
-      "titulo": "Energia Restabelecida",
-      "mensagem": "A energia elétrica foi restabelecida no Setor 8",
-      "data": "Hoje"
-    },
-    {
-      "titulo": "Nova Tarefa",
-      "mensagem": "Você recebeu uma nova ordem de serviço para verificar cabos",
-      "data": "Ontem, 18:45"
-    },
+  final List<AlertaMock> alertas = const [
+    AlertaMock(
+      descricao: "A IA detectou uma falha no Equipamento 32",
+      nivel: "critico",
+      equipamento: "Gerador Portuário GP-07",
+      criadoEm: "12:30",
+    ),
+    AlertaMock(
+      descricao: "Necessária manutenção preventiva no Setor 5",
+      nivel: "medio",
+      equipamento: "Esteira de Contentores EC-02",
+      criadoEm: "Ontem",
+    ),
+    AlertaMock(
+      descricao: "Novo firmware disponível para o equipamento",
+      nivel: "razoavel",
+      equipamento: "Sistema de Pesagem SP-03",
+      criadoEm: "08:00",
+      lido: true,
+    ),
+    AlertaMock(
+      descricao: "O sensor de temperatura foi desligado",
+      nivel: "medio",
+      equipamento: "Compressor Industrial CI-08",
+      criadoEm: "09:15",
+    ),
+    AlertaMock(
+      descricao: "Acesso não autorizado detectado na área restrita",
+      nivel: "critico",
+      equipamento: "Cofre Eletrónico CE-01",
+      criadoEm: "07:45",
+    ),
+    AlertaMock(
+      descricao: "O equipamento voltou a funcionar normalmente",
+      nivel: "razoavel",
+      equipamento: "Empilhadeira Industrial EI-04",
+      criadoEm: "Anteontem",
+      lido: true,
+    ),
+    AlertaMock(
+      descricao: "Perda de comunicação com o servidor central",
+      nivel: "critico",
+      equipamento: "Servidor Core SRV-03",
+      criadoEm: "13:20",
+    ),
+    AlertaMock(
+      descricao: "O tanque de armazenamento atingiu 95% da capacidade",
+      nivel: "medio",
+      equipamento: "Tanque de Armazenamento TQ-15",
+      criadoEm: "14:00",
+    ),
   ];
 
-  List<Map<String, String>> notificacoesFiltradas = [];
+  List<AlertaMock> alertasFiltrados = [];
   bool _mostrandoCampoPesquisa = false;
   String _termoPesquisa = "";
 
   @override
   void initState() {
     super.initState();
-    notificacoesFiltradas = notificacoes;
+    alertasFiltrados = alertas;
   }
 
-  void _filtrarNotificacoes(String termo) {
+  void _filtrarAlertas(String termo) {
     setState(() {
       _termoPesquisa = termo.toLowerCase();
-      notificacoesFiltradas = notificacoes.where((notificacao) {
-        final titulo = notificacao["titulo"]!.toLowerCase();
-        final mensagem = notificacao["mensagem"]!.toLowerCase();
-        final data = notificacao["data"]!.toLowerCase();
-
-        return titulo.contains(_termoPesquisa) ||
-            mensagem.contains(_termoPesquisa) ||
-            data.contains(_termoPesquisa);
+      alertasFiltrados = alertas.where((a) {
+        return a.descricao.toLowerCase().contains(_termoPesquisa) ||
+            a.equipamento.toLowerCase().contains(_termoPesquisa);
       }).toList();
     });
+  }
+
+  String _labelNivel(String nivel) {
+    switch (nivel) {
+      case 'critico':
+        return 'Crítico';
+      case 'medio':
+        return 'Médio';
+      default:
+        return 'Razoável';
+    }
   }
 
   @override
@@ -101,11 +126,11 @@ class _AlertsPageState extends State<AlertsPage> {
         title: _mostrandoCampoPesquisa
             ? TextField(
                 autofocus: true,
-                onChanged: _filtrarNotificacoes,
+                onChanged: _filtrarAlertas,
                 style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
                 cursorColor: AppColors.accent,
                 decoration: const InputDecoration(
-                  hintText: "Pesquisar notificações...",
+                  hintText: "Pesquisar alertas...",
                   hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
                   border: InputBorder.none,
                   icon: Icon(Icons.search, color: AppColors.textSecondary),
@@ -120,7 +145,7 @@ class _AlertsPageState extends State<AlertsPage> {
               setState(() {
                 _mostrandoCampoPesquisa = !_mostrandoCampoPesquisa;
                 if (!_mostrandoCampoPesquisa) {
-                  notificacoesFiltradas = notificacoes;
+                  alertasFiltrados = alertas;
                   _termoPesquisa = "";
                 }
               });
@@ -131,40 +156,64 @@ class _AlertsPageState extends State<AlertsPage> {
           ),
         ],
       ),
-      body: notificacoesFiltradas.isEmpty
+      body: alertasFiltrados.isEmpty
           ? const Center(
               child: Text(
-                "Nenhuma notificação encontrada",
+                "Nenhum alerta encontrado",
                 style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
               ),
             )
           : ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              itemCount: notificacoesFiltradas.length,
+              itemCount: alertasFiltrados.length,
               itemBuilder: (context, index) {
-                final notificacao = notificacoesFiltradas[index];
+                final alerta = alertasFiltrados[index];
+                final cor = AppColors.nivelAlerta(alerta.nivel);
                 return Container(
                   decoration: BoxDecoration(
                     color: AppColors.panel,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.panelBorder),
+                    border: Border.all(
+                      color: alerta.lido ? AppColors.panelBorder : cor.withOpacity(0.5),
+                    ),
                   ),
                   child: ListTile(
-                    leading: const Icon(
-                      Icons.warning_amber_rounded,
-                      color: AppColors.warning,
-                      size: 32,
+                    leading: Container(
+                      width: 10,
+                      height: 10,
+                      margin: const EdgeInsets.only(top: 4),
+                      decoration: BoxDecoration(
+                        color: alerta.lido ? Colors.transparent : cor,
+                        shape: BoxShape.circle,
+                        border: alerta.lido ? Border.all(color: AppColors.panelBorder) : null,
+                      ),
                     ),
                     title: Text(
-                      notificacao["titulo"]!,
+                      alerta.equipamento,
                       style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
                     ),
-                    subtitle: Text(
-                      notificacao["mensagem"]!,
-                      style: const TextStyle(color: AppColors.textSecondary),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 2),
+                        Text(alerta.descricao, style: const TextStyle(color: AppColors.textSecondary)),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: cor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            _labelNivel(alerta.nivel),
+                            style: TextStyle(color: cor, fontSize: 11, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
                     ),
+                    isThreeLine: true,
                     trailing: Text(
-                      notificacao["data"]!,
+                      alerta.criadoEm,
                       style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                     ),
                     onTap: () {

@@ -68,12 +68,21 @@ class ProfilePage extends StatelessWidget {
               const SizedBox(height: 16),
 
               // ======== INFORMAÇÕES ========
+              // Campos alinhados ao Funcionario do backend: nome, cargo,
+              // email, telefone, empresa (a que está vinculado) e status
+              // (Ativo | Inativo | Pendente).
               _sectionCard([
                 _infoTile(icon: Icons.person, title: "Nome", subtitle: "Mutombo Pedro"),
                 _divider(),
-                _infoTile(icon: Icons.work, title: "Função", subtitle: "Técnico de Equipamentos"),
+                _infoTile(icon: Icons.work, title: "Cargo", subtitle: "Técnico de Equipamentos"),
+                _divider(),
+                _infoTile(icon: Icons.business, title: "Empresa", subtitle: "Sonangol Refinaria Luanda"),
                 _divider(),
                 _infoTile(icon: Icons.email, title: "Email", subtitle: "mtbpedro17@gmail.com"),
+                _divider(),
+                _infoTile(icon: Icons.phone, title: "Telefone", subtitle: "+244 923 000 001"),
+                _divider(),
+                _statusTile(status: "Ativo"),
               ]),
 
               const SizedBox(height: 16),
@@ -158,6 +167,27 @@ class ProfilePage extends StatelessWidget {
       leading: Icon(icon, color: AppColors.textSecondary),
       title: Text(title, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
       subtitle: Text(subtitle, style: const TextStyle(color: AppColors.textPrimary, fontSize: 15)),
+    );
+  }
+
+  /// Cor por estado, mesma convenção do var-frontend: Ativo = verde,
+  /// Pendente = amarelo, Inativo = vermelho.
+  Widget _statusTile({required String status}) {
+    final cor = switch (status) {
+      "Ativo" => AppColors.success,
+      "Pendente" => AppColors.warning,
+      _ => AppColors.danger,
+    };
+    return ListTile(
+      leading: const Icon(Icons.verified_user_outlined, color: AppColors.textSecondary),
+      title: const Text("Estado", style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+      subtitle: Row(
+        children: [
+          Container(width: 8, height: 8, decoration: BoxDecoration(color: cor, shape: BoxShape.circle)),
+          const SizedBox(width: 6),
+          Text(status, style: TextStyle(color: cor, fontSize: 15, fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
   }
 }

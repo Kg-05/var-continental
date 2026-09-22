@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
-class customInput extends StatefulWidget {
+class CustomInput extends StatefulWidget {
   final Icon suffixIcon;
   final bool visibility;
   final String text;
   final bool obscureText; // 🔥 define se é senha
   final TextEditingController controller;
 
-  const customInput({
+  const CustomInput({
     super.key,
     required this.suffixIcon,
     required this.visibility,
@@ -17,10 +18,10 @@ class customInput extends StatefulWidget {
   });
 
   @override
-  State<customInput> createState() => _CustomInputState();
+  State<CustomInput> createState() => _CustomInputState();
 }
 
-class _CustomInputState extends State<customInput> {
+class _CustomInputState extends State<CustomInput> {
   late bool _obscureText;
 
   @override
@@ -35,26 +36,31 @@ class _CustomInputState extends State<customInput> {
       controller: widget.controller,
       autofocus: widget.visibility,
       obscureText: _obscureText, // 🔥 controla se mostra ou não
+      style: const TextStyle(color: AppColors.textPrimary),
+      cursorColor: AppColors.accent,
       decoration: InputDecoration(
-        contentPadding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-        enabledBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(25)),
-          borderSide: BorderSide(color: Color.fromRGBO(216, 216, 216, 1)),
+        contentPadding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
-        focusedBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(25)),
-          borderSide: BorderSide(color: Color.fromRGBO(216, 216, 216, 1)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
         ),
         filled: true,
-        fillColor: const Color.fromRGBO(216, 216, 216, 1),
-        prefixIcon: widget.suffixIcon,
+        fillColor: AppColors.inputFill,
+        prefixIcon: IconTheme(
+          data: const IconThemeData(color: AppColors.textSecondary),
+          child: widget.suffixIcon,
+        ),
 
         // 🔥 se for senha → mostra botão de visibilidade
         suffixIcon: widget.obscureText
             ? IconButton(
                 icon: Icon(
                   _obscureText ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.black54,
+                  color: AppColors.textSecondary,
                 ),
                 onPressed: () {
                   setState(() {
@@ -66,7 +72,7 @@ class _CustomInputState extends State<customInput> {
 
         hintText: widget.text,
         hintStyle: const TextStyle(
-          color: Colors.black54,
+          color: AppColors.textMuted,
           fontWeight: FontWeight.w300,
         ),
       ),

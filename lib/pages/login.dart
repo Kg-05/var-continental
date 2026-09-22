@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // 👈 importa para usar SystemNavigator
 import '../components/customInput.dart';
+import '../theme/app_colors.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,45 +20,46 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
   void _login() async {
-  String codigo = codigoController.text.trim();
-  String senha = senhaController.text.trim();
+    String codigo = codigoController.text.trim();
+    String senha = senhaController.text.trim();
 
-  if (codigo.isEmpty || senha.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Preencha todos os campos!"),
-        backgroundColor: Colors.orange,
-      ),
-    );
-    return;
-  }
-
-  setState(() => _isLoading = true);
-  await Future.delayed(const Duration(seconds: 2));
-  setState(() => _isLoading = false);
-
-  if (codigo == codigoCorreto && senha == senhaCorreta) {
-    Navigator.of(context).pushReplacementNamed("/shell"); // 🔥 não volta mais
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (codigo.isEmpty || senha.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("👋 Bem-vindo ao sistema!"),
-          backgroundColor: Colors.blueAccent,
-          duration: Duration(seconds: 3),
+          content: Text("Preencha todos os campos!"),
+          backgroundColor: AppColors.warning,
         ),
       );
-    });
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Código ou senha incorretos!"),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-}
+      return;
+    }
 
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() => _isLoading = false);
+
+    if (!mounted) return;
+
+    if (codigo == codigoCorreto && senha == senhaCorreta) {
+      Navigator.of(context).pushReplacementNamed("/shell"); // 🔥 não volta mais
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("👋 Bem-vindo ao sistema!"),
+            backgroundColor: AppColors.accent,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Código ou senha incorretos!"),
+          backgroundColor: AppColors.dangerDark,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,84 +80,100 @@ class _LoginPageState extends State<LoginPage> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF0D47A1),
-                Color(0xFF00B0FF),
-                Color(0xFF00C853),
+                AppColors.background,
+                AppColors.backgroundGradientEnd,
               ],
             ),
           ),
           alignment: Alignment.topCenter,
-          child: SingleChildScrollView(
-            child: Column(
-              children: <Widget>[
-                SizedBox(
-                  width: screenWidth * 0.9,
-                  height: screenHeight * 0.4,
-                  child: Image.asset("assets/images/var.png"),
-                ),
-                SizedBox(height: screenHeight * 0.03),
-                Text(
-                  "Login",
-                  style: TextStyle(
-                    fontFamily: "Poppins",
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: screenWidth * 0.07,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                children: <Widget>[
+                  SizedBox(height: screenHeight * 0.04),
+                  SizedBox(
+                    width: screenWidth * 0.55,
+                    height: screenHeight * 0.22,
+                    child: Image.asset("assets/images/var.png"),
                   ),
-                ),
-                SizedBox(height: screenHeight * 0.03),
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.1,
-                    vertical: screenHeight * 0.01,
+                  SizedBox(height: screenHeight * 0.02),
+                  const Text(
+                    "Bem-vindo",
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 28,
+                    ),
                   ),
-                  child: customInput(
-                    controller: codigoController,
-                    suffixIcon: const Icon(Icons.edit),
-                    visibility: true,
-                    text: "Digite seu código",
+                  const SizedBox(height: 4),
+                  const Text(
+                    "Entra com o teu código de técnico",
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                   ),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.1,
-                    vertical: screenHeight * 0.01,
+                  SizedBox(height: screenHeight * 0.04),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.08,
+                      vertical: screenHeight * 0.01,
+                    ),
+                    child: CustomInput(
+                      controller: codigoController,
+                      suffixIcon: const Icon(Icons.badge_outlined),
+                      visibility: true,
+                      text: "Digite o teu código",
+                    ),
                   ),
-                  child: customInput(
-                    controller: senhaController,
-                    suffixIcon: const Icon(Icons.lock),
-                    visibility: false,
-                    text: "Digite a sua senha",
-                    obscureText: true,
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.08,
+                      vertical: screenHeight * 0.01,
+                    ),
+                    child: CustomInput(
+                      controller: senhaController,
+                      suffixIcon: const Icon(Icons.lock_outline),
+                      visibility: false,
+                      text: "Digite a tua senha",
+                      obscureText: true,
+                    ),
                   ),
-                ),
-                SizedBox(height: screenHeight * 0.04),
-                SizedBox(
-                  height: screenHeight * 0.05,
-                  width: screenWidth * 0.3,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
+                  SizedBox(height: screenHeight * 0.04),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          disabledBackgroundColor: AppColors.accent.withOpacity(0.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : const Text(
+                                "Entrar",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
                       ),
                     ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          )
-                        : Text(
-                            "Acessar",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: screenWidth * 0.04,
-                            ),
-                          ),
                   ),
-                ),
-              ],
+                  SizedBox(height: screenHeight * 0.04),
+                ],
+              ),
             ),
           ),
         ),

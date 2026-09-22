@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -6,157 +7,157 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200],
-
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // ======== CABEÇALHO ========
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF0D3F86), Color(0xFF2A75D2)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // ======== CABEÇALHO ========
+              Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.panel,
+                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
                 ),
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(24),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            Navigator.of(context).pushNamed("/Definicoes");
+                          },
+                          icon: const Icon(Icons.settings),
+                          color: AppColors.textPrimary,
+                          iconSize: 28,
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            Navigator.of(context).pushNamed("/Editarperfil");
+                          },
+                          icon: const Icon(Icons.edit),
+                          color: AppColors.textPrimary,
+                          iconSize: 26,
+                        )
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const CircleAvatar(
+                      radius: 48,
+                      backgroundColor: AppColors.inputFill,
+                      backgroundImage: AssetImage("assets/images/var_2.png"),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Mutombo Pedro",
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Text(
+                      "Técnico de Equipamentos",
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    ),
+                  ],
                 ),
               ),
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  // Ícones de canto
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(onPressed: () {
-                      Navigator.of(context).pushNamed("/Definicoes");
-                    }, 
-                    icon: Icon(Icons.settings), 
-                    color: Colors.white, iconSize: 35,),
 
-                      IconButton(onPressed: () {
-                        Navigator.of(context).pushNamed("/Editarperfil");
-                      }, 
-                    icon: Icon(Icons.edit), 
-                    color: Colors.white, iconSize: 35,)
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-                  // Foto de perfil
-                  const CircleAvatar(
-                    radius: 48,
-                    backgroundImage: AssetImage("assets/images/var_2.png"),
-                  ),
-                  const SizedBox(height: 16),
+              // ======== INFORMAÇÕES ========
+              _sectionCard([
+                _infoTile(icon: Icons.person, title: "Nome", subtitle: "Mutombo Pedro"),
+                _divider(),
+                _infoTile(icon: Icons.work, title: "Função", subtitle: "Técnico de Equipamentos"),
+                _divider(),
+                _infoTile(icon: Icons.email, title: "Email", subtitle: "mtbpedro17@gmail.com"),
+              ]),
 
-                  // Nome
-                  const Text(
-                    "Mutombo Pedro",
+              const SizedBox(height: 16),
+
+              // ======== PREFERÊNCIAS ========
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "PREFERÊNCIAS",
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
+                      color: AppColors.textMuted,
                       fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      letterSpacing: 0.5,
                     ),
                   ),
-
-                  // Profissão
-                  const Text(
-                    "Desenvolvedor Júnior",
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // ======== INFORMAÇÕES ========
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                children: const [
-                  ListTile(
-                    leading: Icon(Icons.person),
-                    title: Text("Nome"),
-                    subtitle: Text("Mutombo Pedro"),
-                  ),
-                  Divider(),
-                  ListTile(
-                    leading: Icon(Icons.work),
-                    title: Text("Função"),
-                    subtitle: Text("Desenvolvedor Júnior"),
-                  ),
-                  Divider(),
-                  ListTile(
-                    leading: Icon(Icons.email),
-                    title: Text("Email"),
-                    subtitle: Text("mtbpedro17@gmail.com"),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            // ======== PREFERÊNCIAS ========
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.grey[300],
-              child: const Text(
-                "Preferência",
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
+              const SizedBox(height: 8),
 
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                children: [
-                  
-                   ListTile(
-                    leading: Icon(Icons.language),
-                    title: Text("Linguagem"),
-                    trailing: Text("Português"),
-                    onTap: (){
-                      Navigator.of(context).pushNamed("/Linguagem");
-                    },
-                  ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.help_outline),
-                    title: const Text("Informações"),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap:() {
-                      Navigator.of(context).pushNamed("/Privacidade");
-                    } 
-                  ),
-                  const Divider(),
-                  SwitchListTile(
-                    secondary: const Icon(Icons.dark_mode),
-                    title: const Text("Modo escuro"),
-                    value: false,
-                    onChanged: (v) {},
-                  ),
-                  const Divider(),
-                  SwitchListTile(
-                    secondary: const Icon(Icons.notifications),
-                    title: const Text("Notificações"),
-                    value: true,
-                    onChanged: (v) {},
-                  ),
-                ],
-              ),
-            ),
-          ],
+              _sectionCard([
+                ListTile(
+                  leading: const Icon(Icons.language, color: AppColors.textSecondary),
+                  title: const Text("Linguagem", style: TextStyle(color: AppColors.textPrimary)),
+                  trailing: const Text("Português", style: TextStyle(color: AppColors.textMuted)),
+                  onTap: () {
+                    Navigator.of(context).pushNamed("/Linguagem");
+                  },
+                ),
+                _divider(),
+                ListTile(
+                  leading: const Icon(Icons.help_outline, color: AppColors.textSecondary),
+                  title: const Text("Informações", style: TextStyle(color: AppColors.textPrimary)),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textMuted),
+                  onTap: () {
+                    Navigator.of(context).pushNamed("/Privacidade");
+                  },
+                ),
+                _divider(),
+                SwitchListTile(
+                  secondary: const Icon(Icons.dark_mode, color: AppColors.textSecondary),
+                  title: const Text("Modo escuro", style: TextStyle(color: AppColors.textPrimary)),
+                  activeColor: AppColors.accent,
+                  value: true,
+                  onChanged: (v) {},
+                ),
+                _divider(),
+                SwitchListTile(
+                  secondary: const Icon(Icons.notifications, color: AppColors.textSecondary),
+                  title: const Text("Notificações", style: TextStyle(color: AppColors.textPrimary)),
+                  activeColor: AppColors.accent,
+                  value: true,
+                  onChanged: (v) {},
+                ),
+              ]),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _sectionCard(List<Widget> children) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.panelBorder),
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _divider() => const Divider(color: AppColors.panelBorder, height: 1);
+
+  Widget _infoTile({required IconData icon, required String title, required String subtitle}) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.textSecondary),
+      title: Text(title, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+      subtitle: Text(subtitle, style: const TextStyle(color: AppColors.textPrimary, fontSize: 15)),
     );
   }
 }

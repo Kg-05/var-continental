@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:var_continental/pages/login.dart';
+import 'package:var_continental/theme/app_colors.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -64,7 +65,7 @@ class _SplashPageState extends State<SplashPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue[800],
+      backgroundColor: AppColors.background,
       body: Center(
         child: ScaleTransition(
           scale: _animation,

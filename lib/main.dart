@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:var_continental/theme/app_colors.dart';
 import 'package:var_continental/pages/definicoes.dart';
 import 'package:var_continental/pages/editUtilizador.dart';
 import 'package:var_continental/pages/editarPerfil.dart';
@@ -27,9 +28,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: false,
         fontFamily: 'Roboto',
-        scaffoldBackgroundColor: const Color(0xFF0B1A30),
-        bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: Colors.white
+        scaffoldBackgroundColor: AppColors.background,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.accent,
+          brightness: Brightness.dark,
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: AppColors.panel,
         ),
       ),
       initialRoute: "/SplashPage",

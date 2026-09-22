@@ -4,6 +4,7 @@ import 'pages/home.dart';
 import 'pages/dashboard.dart';
 import 'pages/alerts.dart';
 import 'pages/profile.dart';
+import 'theme/app_colors.dart';
 
 class Shell extends StatefulWidget {
   const Shell({super.key});
@@ -56,18 +57,25 @@ class _ShellState extends State<Shell> {
     return await showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text("Sair do aplicativo"),
-            content: const Text("Tens certeza que desejas sair?"),
+            backgroundColor: AppColors.panel,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text("Sair do aplicativo", style: TextStyle(color: AppColors.textPrimary)),
+            content: const Text(
+              "Tens certeza que desejas sair?",
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text("Cancelar"),
+                child: const Text("Cancelar",
+                    style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
               ),
               TextButton(
                 onPressed: () {
                   SystemNavigator.pop(); // fecha o app
                 },
-                child: const Text("Sair"),
+                child: const Text("Sair",
+                    style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -80,6 +88,7 @@ class _ShellState extends State<Shell> {
     return WillPopScope(
       onWillPop: _onWillPop, // 👈 intercepta botão voltar
       child: Scaffold(
+        backgroundColor: AppColors.background,
         body: PageView(
           controller: _pageController,
           onPageChanged: onPageChanged,
@@ -90,15 +99,16 @@ class _ShellState extends State<Shell> {
           child: Container(
             height: 58,
             decoration: BoxDecoration(
-              color: const Color(0xFF343C44),
+              color: AppColors.panel,
               borderRadius: BorderRadius.circular(50),
+              border: Border.all(color: AppColors.panelBorder),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 5),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _NavItem(
-                  label: 'Casa',
+                  label: 'Início',
                   icon: Icons.home_rounded,
                   onTap: () => onNavTap(0),
                   active: index == 0,
@@ -148,7 +158,7 @@ class _NavItem extends StatelessWidget {
       return InkResponse(
         onTap: onTap,
         radius: 28,
-        child: Icon(icon, size: 24, color: Colors.white70),
+        child: Icon(icon, size: 24, color: AppColors.textSecondary),
       );
     }
     return InkWell(
@@ -159,11 +169,7 @@ class _NavItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(50),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF3E74E8), Color(0xFF274EC7)],
-          ),
+          color: AppColors.accent,
         ),
         child: Row(
           children: [

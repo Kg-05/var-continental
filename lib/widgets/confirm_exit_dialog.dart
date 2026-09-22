@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../services/session_store.dart';
 
 /// Mostra o diálogo de confirmação de saída e, se confirmado, navega
 /// para o login. Antes estava copiado em 3 ecrãs diferentes.
@@ -34,6 +35,7 @@ Future<void> confirmarSaida(BuildContext context) async {
   );
 
   if (confirm == true && context.mounted) {
+    SessionStore.clear();
     Navigator.of(context).pushReplacementNamed('/LoginPage');
   }
 }

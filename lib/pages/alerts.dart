@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../widgets/confirm_exit_dialog.dart';
+import '../models/alerta.dart' as api;
+import '../services/alerta_service.dart';
+import '../services/api_client.dart';
+import 'alert_detail.dart';
 
+/// Ainda usado pela Home para os "alertas recentes" (ver home.dart) —
+/// a lista desta página já usa o model real (models/alerta.dart).
 /// Espelha o modelo Alerta do backend: descricao, nivel
 /// (razoavel|medio|critico), equipamento associado e lidoEm (null = não lido).
 /// Os valores aqui continuam fictícios — a estrutura é que é real.
@@ -29,76 +35,59 @@ class AlertsPage extends StatefulWidget {
 }
 
 class _AlertsPageState extends State<AlertsPage> {
-  final List<AlertaMock> alertas = const [
-    AlertaMock(
-      descricao: "A IA detectou uma falha no Equipamento 32",
-      nivel: "critico",
-      equipamento: "Gerador Portuário GP-07",
-      criadoEm: "12:30",
-    ),
-    AlertaMock(
-      descricao: "Necessária manutenção preventiva no Setor 5",
-      nivel: "medio",
-      equipamento: "Esteira de Contentores EC-02",
-      criadoEm: "Ontem",
-    ),
-    AlertaMock(
-      descricao: "Novo firmware disponível para o equipamento",
-      nivel: "razoavel",
-      equipamento: "Sistema de Pesagem SP-03",
-      criadoEm: "08:00",
-      lido: true,
-    ),
-    AlertaMock(
-      descricao: "O sensor de temperatura foi desligado",
-      nivel: "medio",
-      equipamento: "Compressor Industrial CI-08",
-      criadoEm: "09:15",
-    ),
-    AlertaMock(
-      descricao: "Acesso não autorizado detectado na área restrita",
-      nivel: "critico",
-      equipamento: "Cofre Eletrónico CE-01",
-      criadoEm: "07:45",
-    ),
-    AlertaMock(
-      descricao: "O equipamento voltou a funcionar normalmente",
-      nivel: "razoavel",
-      equipamento: "Empilhadeira Industrial EI-04",
-      criadoEm: "Anteontem",
-      lido: true,
-    ),
-    AlertaMock(
-      descricao: "Perda de comunicação com o servidor central",
-      nivel: "critico",
-      equipamento: "Servidor Core SRV-03",
-      criadoEm: "13:20",
-    ),
-    AlertaMock(
-      descricao: "O tanque de armazenamento atingiu 95% da capacidade",
-      nivel: "medio",
-      equipamento: "Tanque de Armazenamento TQ-15",
-      criadoEm: "14:00",
-    ),
-  ];
-
-  List<AlertaMock> alertasFiltrados = [];
+  List<api.Alerta> alertas = [];
+  List<api.Alerta> alertasFiltrados = [];
   bool _mostrandoCampoPesquisa = false;
   String _termoPesquisa = "";
+  bool _carregando = true;
+  String? _erro;
 
   @override
   void initState() {
     super.initState();
-    alertasFiltrados = alertas;
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    setState(() {
+      _carregando = true;
+      _erro = null;
+    });
+    try {
+      final lista = await AlertaService.listar();
+      if (!mounted) return;
+      setState(() {
+        alertas = lista;
+        alertasFiltrados = _aplicarFiltro(lista, _termoPesquisa);
+        _carregando = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _erro = e.message;
+        _carregando = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _erro = 'Não foi possível carregar os alertas.';
+        _carregando = false;
+      });
+    }
+  }
+
+  List<api.Alerta> _aplicarFiltro(List<api.Alerta> lista, String termo) {
+    if (termo.isEmpty) return lista;
+    return lista.where((a) {
+      return a.descricao.toLowerCase().contains(termo) ||
+          a.equipamento.nome.toLowerCase().contains(termo);
+    }).toList();
   }
 
   void _filtrarAlertas(String termo) {
     setState(() {
       _termoPesquisa = termo.toLowerCase();
-      alertasFiltrados = alertas.where((a) {
-        return a.descricao.toLowerCase().contains(_termoPesquisa) ||
-            a.equipamento.toLowerCase().contains(_termoPesquisa);
-      }).toList();
+      alertasFiltrados = _aplicarFiltro(alertas, _termoPesquisa);
     });
   }
 
@@ -111,6 +100,17 @@ class _AlertsPageState extends State<AlertsPage> {
       default:
         return 'Razoável';
     }
+  }
+
+  String _formatarHora(DateTime data) {
+    return '${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _abrirDetalhe(api.Alerta alerta) async {
+    final atualizou = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => AlertDetailPage(alertaId: alerta.id)),
+    );
+    if (atualizou == true) _carregar();
   }
 
   @override
@@ -156,74 +156,122 @@ class _AlertsPageState extends State<AlertsPage> {
           ),
         ],
       ),
-      body: alertasFiltrados.isEmpty
-          ? const Center(
-              child: Text(
-                "Nenhum alerta encontrado",
-                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+      body: _corpo(),
+    );
+  }
+
+  Widget _corpo() {
+    if (_carregando) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+    }
+    if (_erro != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.danger, size: 40),
+              const SizedBox(height: 12),
+              Text(_erro!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _carregar,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+                child: const Text('Tentar novamente'),
               ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              itemCount: alertasFiltrados.length,
-              itemBuilder: (context, index) {
-                final alerta = alertasFiltrados[index];
-                final cor = AppColors.nivelAlerta(alerta.nivel);
-                return Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.panel,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: alerta.lido ? AppColors.panelBorder : cor.withOpacity(0.5),
-                    ),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      width: 10,
-                      height: 10,
-                      margin: const EdgeInsets.only(top: 4),
-                      decoration: BoxDecoration(
-                        color: alerta.lido ? Colors.transparent : cor,
-                        shape: BoxShape.circle,
-                        border: alerta.lido ? Border.all(color: AppColors.panelBorder) : null,
-                      ),
-                    ),
-                    title: Text(
-                      alerta.equipamento,
-                      style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 2),
-                        Text(alerta.descricao, style: const TextStyle(color: AppColors.textSecondary)),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: cor.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _labelNivel(alerta.nivel),
-                            style: TextStyle(color: cor, fontSize: 11, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ],
-                    ),
-                    isThreeLine: true,
-                    trailing: Text(
-                      alerta.criadoEm,
-                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                    ),
-                    onTap: () {
-                      // TODO: abrir detalhe do alerta quando o app for integrado com a API
-                    },
-                  ),
-                );
-              },
-              separatorBuilder: (context, index) => const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      );
+    }
+    if (alertasFiltrados.isEmpty) {
+      return const Center(
+        child: Text(
+          "Nenhum alerta encontrado",
+          style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _carregar,
+      color: AppColors.accent,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        itemCount: alertasFiltrados.length,
+        itemBuilder: (context, index) {
+          final alerta = alertasFiltrados[index];
+          final cor = AppColors.nivelAlerta(alerta.nivel);
+          final lido = alerta.lidoEm != null;
+          return Container(
+            decoration: BoxDecoration(
+              color: AppColors.panel,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: lido ? AppColors.panelBorder : cor.withOpacity(0.5),
+              ),
             ),
+            child: ListTile(
+              leading: Container(
+                width: 10,
+                height: 10,
+                margin: const EdgeInsets.only(top: 4),
+                decoration: BoxDecoration(
+                  color: lido ? Colors.transparent : cor,
+                  shape: BoxShape.circle,
+                  border: lido ? Border.all(color: AppColors.panelBorder) : null,
+                ),
+              ),
+              title: Text(
+                alerta.equipamento.nome,
+                style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 2),
+                  Text(alerta.descricao, style: const TextStyle(color: AppColors.textSecondary)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: cor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _labelNivel(alerta.nivel),
+                          style: TextStyle(color: cor, fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          api.StatusAlerta.rotulo(alerta.status),
+                          style: const TextStyle(color: AppColors.accent, fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              isThreeLine: true,
+              trailing: Text(
+                _formatarHora(alerta.criadoEm),
+                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              onTap: () => _abrirDetalhe(alerta),
+            ),
+          );
+        },
+        separatorBuilder: (context, index) => const SizedBox(height: 8),
+      ),
     );
   }
 }

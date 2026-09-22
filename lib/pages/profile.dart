@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../services/session_store.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final usuario = SessionStore.usuario;
+    final funcionario = usuario?.funcionario;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -49,17 +53,17 @@ class ProfilePage extends StatelessWidget {
                       backgroundImage: AssetImage("assets/images/var_2.png"),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      "Mutombo Pedro",
-                      style: TextStyle(
+                    Text(
+                      usuario?.nome ?? "—",
+                      style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const Text(
-                      "Técnico de Equipamentos",
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    Text(
+                      funcionario?.cargo ?? "Técnico",
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                     ),
                   ],
                 ),
@@ -69,20 +73,18 @@ class ProfilePage extends StatelessWidget {
 
               // ======== INFORMAÇÕES ========
               // Campos alinhados ao Funcionario do backend: nome, cargo,
-              // email, telefone, empresa (a que está vinculado) e status
-              // (Ativo | Inativo | Pendente).
+              // email, telefone e status (Ativo | Inativo | Pendente) —
+              // vêm da resposta de POST /auth/login guardada em SessionStore.
               _sectionCard([
-                _infoTile(icon: Icons.person, title: "Nome", subtitle: "Mutombo Pedro"),
+                _infoTile(icon: Icons.person, title: "Nome", subtitle: usuario?.nome ?? "—"),
                 _divider(),
-                _infoTile(icon: Icons.work, title: "Cargo", subtitle: "Técnico de Equipamentos"),
+                _infoTile(icon: Icons.work, title: "Cargo", subtitle: funcionario?.cargo ?? "—"),
                 _divider(),
-                _infoTile(icon: Icons.business, title: "Empresa", subtitle: "Sonangol Refinaria Luanda"),
+                _infoTile(icon: Icons.email, title: "Email", subtitle: usuario?.email ?? "—"),
                 _divider(),
-                _infoTile(icon: Icons.email, title: "Email", subtitle: "mtbpedro17@gmail.com"),
+                _infoTile(icon: Icons.phone, title: "Telefone", subtitle: funcionario?.telefone ?? "Não informado"),
                 _divider(),
-                _infoTile(icon: Icons.phone, title: "Telefone", subtitle: "+244 923 000 001"),
-                _divider(),
-                _statusTile(status: "Ativo"),
+                _statusTile(status: funcionario?.status ?? "Ativo"),
               ]),
 
               const SizedBox(height: 16),

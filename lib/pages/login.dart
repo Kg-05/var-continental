@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // 👈 importa para usar SystemNavigator
 import '../components/customInput.dart';
 import '../theme/app_colors.dart';
+import '../services/auth_service.dart';
+import '../services/api_client.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -11,19 +13,16 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController codigoController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController senhaController = TextEditingController();
-
-  final String codigoCorreto = "12345";
-  final String senhaCorreta = "var2025";
 
   bool _isLoading = false;
 
   void _login() async {
-    String codigo = codigoController.text.trim();
+    String email = emailController.text.trim();
     String senha = senhaController.text.trim();
 
-    if (codigo.isEmpty || senha.isEmpty) {
+    if (email.isEmpty || senha.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Preencha todos os campos!"),
@@ -34,12 +33,11 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() => _isLoading = false);
 
-    if (!mounted) return;
+    try {
+      await AuthService.login(email, senha);
+      if (!mounted) return;
 
-    if (codigo == codigoCorreto && senha == senhaCorreta) {
       Navigator.of(context).pushReplacementNamed("/shell"); // 🔥 não volta mais
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -51,13 +49,21 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
       });
-    } else {
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: AppColors.dangerDark),
+      );
+    } catch (_) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Código ou senha incorretos!"),
+          content: Text("Não foi possível iniciar sessão. Tenta novamente."),
           backgroundColor: AppColors.dangerDark,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -107,7 +113,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    "Entra com o teu código de técnico",
+                    "Entra com o teu email de técnico",
                     style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                   ),
                   SizedBox(height: screenHeight * 0.04),
@@ -117,10 +123,10 @@ class _LoginPageState extends State<LoginPage> {
                       vertical: screenHeight * 0.01,
                     ),
                     child: CustomInput(
-                      controller: codigoController,
-                      suffixIcon: const Icon(Icons.badge_outlined),
+                      controller: emailController,
+                      suffixIcon: const Icon(Icons.email_outlined),
                       visibility: true,
-                      text: "Digite o teu código",
+                      text: "Digite o teu email",
                     ),
                   ),
                   Padding(

@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Necessária para a app falar com a API do backend (var-mvp-continental)
+         em builds release — os manifests debug/profile já a têm, injetada
+         automaticamente pelo Flutter só para esses dois, não para release. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="var_continental"
         android:name="${applicationName}"

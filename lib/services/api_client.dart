@@ -4,6 +4,7 @@
 // sessão guardada.
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'session_store.dart';
 
@@ -30,7 +31,10 @@ class ApiClient {
     final http.Response res;
     try {
       res = await http.get(Uri.parse('$baseUrl$path'), headers: _headers());
-    } catch (_) {
+    } catch (e, st) {
+      // Log da exceção real — visível com `flutter run` (ou `adb logcat`)
+      // mesmo em release. O utilizador só vê a mensagem genérica abaixo.
+      debugPrint('[ApiClient.get] $path falhou: $e\n$st');
       throw ApiException('Sem ligação ao servidor. Verifica a tua internet.');
     }
     return _handle(res);
@@ -40,7 +44,8 @@ class ApiClient {
     final http.Response res;
     try {
       res = await http.post(Uri.parse('$baseUrl$path'), headers: _headers(), body: jsonEncode(body));
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[ApiClient.post] $path falhou: $e\n$st');
       throw ApiException('Sem ligação ao servidor. Verifica a tua internet.');
     }
     return _handle(res);
@@ -50,7 +55,8 @@ class ApiClient {
     final http.Response res;
     try {
       res = await http.patch(Uri.parse('$baseUrl$path'), headers: _headers(), body: jsonEncode(body));
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[ApiClient.patch] $path falhou: $e\n$st');
       throw ApiException('Sem ligação ao servidor. Verifica a tua internet.');
     }
     return _handle(res);

@@ -105,6 +105,14 @@ class _AlertDetailPageState extends State<AlertDetailPage> {
     }
   }
 
+  String _formatarDataHora(DateTime data) {
+    final dia  = data.day.toString().padLeft(2, '0');
+    final mes  = data.month.toString().padLeft(2, '0');
+    final hora = data.hour.toString().padLeft(2, '0');
+    final min  = data.minute.toString().padLeft(2, '0');
+    return '$dia/$mes/${data.year} às $hora:$min';
+  }
+
   String _labelNivel(String nivel) {
     switch (nivel) {
       case 'critico':
@@ -181,6 +189,11 @@ class _AlertDetailPageState extends State<AlertDetailPage> {
                 ],
                 const SizedBox(height: 10),
                 Text(alerta.descricao, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                const SizedBox(height: 10),
+                Text(
+                  'Criado em ${_formatarDataHora(alerta.criadoEm)}',
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
               ],
             ),
           ),

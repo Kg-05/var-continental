@@ -70,8 +70,12 @@ class Alerta {
         nivel: json['nivel'] as String,
         status: (json['status'] as String?) ?? StatusAlerta.aberto,
         notaTecnico: json['notaTecnico'] as String?,
-        lidoEm: json['lidoEm'] != null ? DateTime.tryParse(json['lidoEm'] as String) : null,
-        criadoEm: DateTime.parse(json['criadoEm'] as String),
+        // O backend devolve as datas em UTC (termina em "Z") — .toLocal()
+        // converte para a hora do dispositivo antes de qualquer ecrã as
+        // formatar, senão mostram sempre a hora UTC (ex: 1h atrasada em
+        // Angola, UTC+1).
+        lidoEm: json['lidoEm'] != null ? DateTime.tryParse(json['lidoEm'] as String)?.toLocal() : null,
+        criadoEm: DateTime.parse(json['criadoEm'] as String).toLocal(),
         equipamento: EquipamentoResumo.fromJson(json['equipamento'] as Map<String, dynamic>),
       );
 }

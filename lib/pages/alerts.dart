@@ -103,7 +103,11 @@ class _AlertsPageState extends State<AlertsPage> {
   }
 
   String _formatarHora(DateTime data) {
-    return '${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
+    final hora = '${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
+    final agora = DateTime.now();
+    final mesmoDia = data.year == agora.year && data.month == agora.month && data.day == agora.day;
+    if (mesmoDia) return hora;
+    return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')} $hora';
   }
 
   Future<void> _abrirDetalhe(api.Alerta alerta) async {

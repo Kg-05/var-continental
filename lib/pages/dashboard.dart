@@ -1,24 +1,68 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../widgets/confirm_exit_dialog.dart';
+import '../models/alerta.dart';
+import '../models/equipamento.dart';
+import '../services/alerta_service.dart';
+import '../services/equipamento_service.dart';
+import '../services/api_client.dart';
 
-/// Valores fictícios (ainda sem ligação à API), mas agora mapeados aos
-/// campos reais do backend: Equipamento.status (Operacional|Manutencao),
-/// Alerta.nivel (razoavel|medio|critico) e Alerta.lidoEm.
-class DashboardPage extends StatelessWidget {
+/// Dashboard com dados reais: estatísticas de equipamentos vêm de
+/// GET /equipamentos/resumo e de alertas de GET /alertas/resumo — ambos já
+/// filtrados no backend pela empresa do utilizador e, no caso de um
+/// Técnico, apenas pelos equipamentos que lhe foram destacados.
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
-  static const int totalEquipamentos = 38;
-  static const int equipamentosOperacionais = 31;
-  static const int equipamentosManutencao = 4;
-  static const int equipamentosComAlertas = 9;
-  static const int alertasCriticos = 3;
-  static const int alertasNaoLidos = 5;
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  ResumoEquipamentos? _equipamentos;
+  ResumoAlertas? _alertas;
+  bool _carregando = true;
+  String? _erro;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    setState(() {
+      _carregando = true;
+      _erro = null;
+    });
+    try {
+      final resultados = await Future.wait([
+        EquipamentoService.resumo(),
+        AlertaService.resumo(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _equipamentos = resultados[0] as ResumoEquipamentos;
+        _alertas = resultados[1] as ResumoAlertas;
+        _carregando = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _erro = e.message;
+        _carregando = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _erro = 'Não foi possível carregar a dashboard.';
+        _carregando = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final percentOperacional = equipamentosOperacionais / totalEquipamentos;
-
     return Container(
       color: AppColors.background,
       child: SafeArea(
@@ -52,92 +96,129 @@ class DashboardPage extends StatelessWidget {
                 ],
               ),
             ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(12),
-                children: [
-                  _cardLarge(
-                    value: '$totalEquipamentos',
-                    title: 'Total de Equipamentos\nMonitorados',
-                    progress: percentOperacional,
-                    trailing: '${(percentOperacional * 100).round()}% operacional',
-                  ),
-                  const SizedBox(height: 10),
-                  _cardLarge(
-                    value: '$equipamentosComAlertas',
-                    title: 'Equipamentos com\nAlertas por Resolver',
-                    progress: equipamentosComAlertas / totalEquipamentos,
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _cardSmallIcon(
-                          value: '$alertasCriticos',
-                          title: 'Alertas\nCríticos',
-                          icon: Icons.report_problem_rounded,
-                          accent: AppColors.danger,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _cardSmallIcon(
-                          value: '$alertasNaoLidos',
-                          title: 'Alertas\nNão Lidos',
-                          icon: Icons.mark_email_unread_rounded,
-                          accent: AppColors.accent,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  _cardMaintenance(),
-                  const SizedBox(height: 10),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: AppColors.panel,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppColors.panelBorder),
-                          ),
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Distribuição\npor Estado',
-                                  style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
-                              const Spacer(),
-                              _legendaEstado('Operacional', equipamentosOperacionais, AppColors.success),
-                              const SizedBox(height: 4),
-                              _legendaEstado('Manutenção', equipamentosManutencao, AppColors.warning),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Container(
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: AppColors.panel,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppColors.panelBorder),
-                          ),
-                          padding: const EdgeInsets.all(14),
-                          child: _gaugeOperacional(percentOperacional),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            Expanded(child: _corpo()),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _corpo() {
+    if (_carregando) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+    }
+    if (_erro != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.danger, size: 40),
+              const SizedBox(height: 12),
+              Text(_erro!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _carregar,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final equipamentos = _equipamentos!;
+    final alertas = _alertas!;
+    final percentOperacional = equipamentos.percentOperacional;
+
+    return RefreshIndicator(
+      onRefresh: _carregar,
+      color: AppColors.accent,
+      child: ListView(
+        padding: const EdgeInsets.all(12),
+        children: [
+          _cardLarge(
+            value: '${equipamentos.total}',
+            title: 'Total de Equipamentos\nMonitorados',
+            progress: percentOperacional,
+            trailing: '${(percentOperacional * 100).round()}% operacional',
+          ),
+          const SizedBox(height: 10),
+          _cardLarge(
+            value: '${equipamentos.comAlertasPorResolver}',
+            title: 'Equipamentos com\nAlertas por Resolver',
+            progress: equipamentos.total == 0
+                ? 0
+                : equipamentos.comAlertasPorResolver / equipamentos.total,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _cardSmallIcon(
+                  value: '${alertas.critico}',
+                  title: 'Alertas\nCríticos',
+                  icon: Icons.report_problem_rounded,
+                  accent: AppColors.danger,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _cardSmallIcon(
+                  value: '${alertas.naoLidos}',
+                  title: 'Alertas\nNão Lidos',
+                  icon: Icons.mark_email_unread_rounded,
+                  accent: AppColors.accent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _cardMaintenance(equipamentos.manutencao),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: AppColors.panel,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.panelBorder),
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Distribuição\npor Estado',
+                          style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
+                      const Spacer(),
+                      _legendaEstado('Operacional', equipamentos.operacional, AppColors.success),
+                      const SizedBox(height: 4),
+                      _legendaEstado('Manutenção', equipamentos.manutencao, AppColors.warning),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: AppColors.panel,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.panelBorder),
+                  ),
+                  padding: const EdgeInsets.all(14),
+                  child: _gaugeOperacional(percentOperacional),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -240,7 +321,7 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _cardMaintenance() {
+  Widget _cardMaintenance(int equipamentosManutencao) {
     return Container(
       height: 90,
       decoration: BoxDecoration(
@@ -266,8 +347,9 @@ class DashboardPage extends StatelessWidget {
                 style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
           ),
           const SizedBox(width: 8),
-          const Text('$equipamentosManutencao',
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w800)),
+          Text('$equipamentosManutencao',
+              style: const TextStyle(
+                  color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.w800)),
         ],
       ),
     );

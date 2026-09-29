@@ -79,3 +79,31 @@ class Alerta {
         equipamento: EquipamentoResumo.fromJson(json['equipamento'] as Map<String, dynamic>),
       );
 }
+
+/// Espelha o retorno de GET /alertas/resumo (AlertaService.resumo no backend).
+class ResumoAlertas {
+  final int total;
+  final int naoLidos;
+  final int razoavel;
+  final int medio;
+  final int critico;
+
+  const ResumoAlertas({
+    required this.total,
+    required this.naoLidos,
+    required this.razoavel,
+    required this.medio,
+    required this.critico,
+  });
+
+  factory ResumoAlertas.fromJson(Map<String, dynamic> json) {
+    final porNivel = (json['porNivel'] as Map<String, dynamic>?) ?? const {};
+    return ResumoAlertas(
+      total: json['total'] as int? ?? 0,
+      naoLidos: json['naoLidos'] as int? ?? 0,
+      razoavel: porNivel['razoavel'] as int? ?? 0,
+      medio: porNivel['medio'] as int? ?? 0,
+      critico: porNivel['critico'] as int? ?? 0,
+    );
+  }
+}

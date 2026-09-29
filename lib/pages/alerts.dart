@@ -6,27 +6,6 @@ import '../services/alerta_service.dart';
 import '../services/api_client.dart';
 import 'alert_detail.dart';
 
-/// Ainda usado pela Home para os "alertas recentes" (ver home.dart) —
-/// a lista desta página já usa o model real (models/alerta.dart).
-/// Espelha o modelo Alerta do backend: descricao, nivel
-/// (razoavel|medio|critico), equipamento associado e lidoEm (null = não lido).
-/// Os valores aqui continuam fictícios — a estrutura é que é real.
-class AlertaMock {
-  final String descricao;
-  final String nivel;
-  final String equipamento;
-  final String criadoEm;
-  final bool lido;
-
-  const AlertaMock({
-    required this.descricao,
-    required this.nivel,
-    required this.equipamento,
-    required this.criadoEm,
-    this.lido = false,
-  });
-}
-
 class AlertsPage extends StatefulWidget {
   const AlertsPage({super.key});
 

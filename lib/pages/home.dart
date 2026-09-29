@@ -1,41 +1,82 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../widgets/confirm_exit_dialog.dart';
-import 'alerts.dart' show AlertaMock;
-import 'dashboard.dart' show DashboardPage;
+import '../models/alerta.dart';
+import '../models/equipamento.dart';
+import '../services/alerta_service.dart';
+import '../services/equipamento_service.dart';
+import '../services/api_client.dart';
+import 'alert_detail.dart';
 
-class HomePage extends StatelessWidget {
+/// Início com dados reais: estatísticas e os 3 alertas mais recentes vêm da
+/// API (GET /alertas, /alertas/resumo e /equipamentos/resumo), já filtrados
+/// no backend pela empresa/equipamentos destacados do utilizador.
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
-  // Os 3 alertas mais recentes — em produção seria o topo da mesma
-  // lista usada no ecrã de Alertas, ordenada por criadoEm.
-  static const List<AlertaMock> alertasRecentes = [
-    AlertaMock(
-      descricao: "A IA detectou uma falha no Equipamento 32",
-      nivel: "critico",
-      equipamento: "Gerador Portuário GP-07",
-      criadoEm: "19:30",
-    ),
-    AlertaMock(
-      descricao: "Necessária manutenção preventiva no Setor 5",
-      nivel: "medio",
-      equipamento: "Esteira de Contentores EC-02",
-      criadoEm: "19:25",
-    ),
-    AlertaMock(
-      descricao: "Novo firmware disponível para o equipamento",
-      nivel: "razoavel",
-      equipamento: "Sistema de Pesagem SP-03",
-      criadoEm: "18:50",
-      lido: true,
-    ),
-  ];
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  ResumoEquipamentos? _equipamentos;
+  ResumoAlertas? _alertasResumo;
+  List<Alerta> _recentes = [];
+  bool _carregando = true;
+  String? _erro;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    setState(() {
+      _carregando = true;
+      _erro = null;
+    });
+    try {
+      final resultados = await Future.wait([
+        EquipamentoService.resumo(),
+        AlertaService.resumo(),
+        AlertaService.listar(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _equipamentos = resultados[0] as ResumoEquipamentos;
+        _alertasResumo = resultados[1] as ResumoAlertas;
+        // Já vem ordenado por nível (desc) e depois por data (desc) do backend.
+        _recentes = (resultados[2] as List<Alerta>).take(3).toList();
+        _carregando = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _erro = e.message;
+        _carregando = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _erro = 'Não foi possível carregar os dados.';
+        _carregando = false;
+      });
+    }
+  }
+
+  Future<void> _abrirDetalhe(Alerta alerta) async {
+    final atualizou = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => AlertDetailPage(alertaId: alerta.id)),
+    );
+    if (atualizou == true) _carregar();
+  }
+
+  String _formatarHora(DateTime data) =>
+      '${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
-    const percentOperacional =
-        DashboardPage.equipamentosOperacionais / DashboardPage.totalEquipamentos;
-
     return Container(
       color: AppColors.background,
       child: SafeArea(
@@ -110,7 +151,8 @@ class HomePage extends StatelessWidget {
                               contentPadding: EdgeInsets.symmetric(vertical: 14),
                             ),
                             onSubmitted: (value) {
-                              // TODO: ligar à pesquisa real quando o app for integrado com a API
+                              // A pesquisa detalhada já existe no ecrã de Alertas;
+                              // aqui mostramos apenas o resumo dos mais recentes.
                             },
                           ),
                         ),
@@ -140,161 +182,210 @@ class HomePage extends StatelessWidget {
                 ],
               ),
             ),
+            Expanded(child: _corpo()),
+          ],
+        ),
+      ),
+    );
+  }
 
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
-                children: [
-                  ...alertasRecentes.map(_alertCard),
-                  const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _corpo() {
+    if (_carregando) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+    }
+    if (_erro != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.danger, size: 40),
+              const SizedBox(height: 12),
+              Text(_erro!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _carregar,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final equipamentos = _equipamentos!;
+    final alertasResumo = _alertasResumo!;
+    final percentOperacional = equipamentos.percentOperacional;
+
+    return RefreshIndicator(
+      onRefresh: _carregar,
+      color: AppColors.accent,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+        children: [
+          if (_recentes.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(20),
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: AppColors.panel,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.panelBorder),
+              ),
+              child: const Center(
+                child: Text('Sem alertas recentes',
+                    style: TextStyle(color: AppColors.textSecondary)),
+              ),
+            )
+          else
+            ..._recentes.map(_alertCard),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.panel,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.panelBorder),
+                  ),
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Expanded(
-                        flex: 2,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.panel,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.panelBorder),
-                          ),
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(Icons.sensors_rounded, size: 16, color: AppColors.textSecondary),
-                                  SizedBox(width: 6),
-                                  Text('Equipamentos\nOperacionais',
-                                      style: TextStyle(
-                                          color: AppColors.textPrimary,
-                                          fontWeight: FontWeight.w600,
-                                          height: 1.2)),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              SizedBox(
-                                height: 140,
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    SizedBox(
-                                      height: 100,
-                                      width: 100,
-                                      child: CircularProgressIndicator(
-                                        value: 1,
-                                        strokeWidth: 10,
-                                        backgroundColor: Colors.white.withOpacity(0.06),
-                                        valueColor:
-                                            const AlwaysStoppedAnimation<Color>(Colors.transparent),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: 100,
-                                      width: 100,
-                                      child: CircularProgressIndicator(
-                                        value: percentOperacional,
-                                        strokeWidth: 10,
-                                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
-                                        backgroundColor: Colors.transparent,
-                                      ),
-                                    ),
-                                    Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text('${DashboardPage.totalEquipamentos}',
-                                            style: TextStyle(
-                                                color: AppColors.textPrimary,
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w800)),
-                                        const SizedBox(height: 2),
-                                        Text('${(percentOperacional * 100).round()}% operacional',
-                                            style: const TextStyle(
-                                                color: AppColors.textSecondary, fontSize: 12)),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.inputFill,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Text('Hoje',
-                                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                              )
-                            ],
-                          ),
-                        ),
+                      const Row(
+                        children: [
+                          Icon(Icons.sensors_rounded, size: 16, color: AppColors.textSecondary),
+                          SizedBox(width: 6),
+                          Text('Equipamentos\nOperacionais',
+                              style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.2)),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 140,
+                        child: Stack(
+                          alignment: Alignment.center,
                           children: [
-                            Container(
-                              height: 112,
-                              decoration: BoxDecoration(
-                                color: AppColors.panel,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppColors.panelBorder),
-                              ),
-                              padding: const EdgeInsets.all(14),
-                              child: const Align(
-                                alignment: Alignment.centerLeft,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('${DashboardPage.alertasCriticos}',
-                                        style: TextStyle(
-                                            color: AppColors.danger,
-                                            fontSize: 26,
-                                            fontWeight: FontWeight.w800)),
-                                    SizedBox(height: 6),
-                                    Text('Alertas\nCríticos',
-                                        style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
-                                  ],
-                                ),
+                            SizedBox(
+                              height: 100,
+                              width: 100,
+                              child: CircularProgressIndicator(
+                                value: 1,
+                                strokeWidth: 10,
+                                backgroundColor: Colors.white.withOpacity(0.06),
+                                valueColor:
+                                    const AlwaysStoppedAnimation<Color>(Colors.transparent),
                               ),
                             ),
-                            const SizedBox(height: 10),
-                            Container(
-                              height: 112,
-                              decoration: BoxDecoration(
-                                color: AppColors.panel,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppColors.panelBorder),
+                            SizedBox(
+                              height: 100,
+                              width: 100,
+                              child: CircularProgressIndicator(
+                                value: percentOperacional,
+                                strokeWidth: 10,
+                                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
+                                backgroundColor: Colors.transparent,
                               ),
-                              padding: const EdgeInsets.all(14),
-                              child: const Align(
-                                alignment: Alignment.centerLeft,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('${DashboardPage.alertasNaoLidos}',
-                                        style: TextStyle(
-                                            color: AppColors.textPrimary,
-                                            fontSize: 26,
-                                            fontWeight: FontWeight.w800)),
-                                    SizedBox(height: 6),
-                                    Text('Alertas\nNão Lidos',
-                                        style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
-                                  ],
-                                ),
-                              ),
+                            ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('${equipamentos.total}',
+                                    style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800)),
+                                const SizedBox(height: 2),
+                                Text('${(percentOperacional * 100).round()}% operacional',
+                                    style: const TextStyle(
+                                        color: AppColors.textSecondary, fontSize: 12)),
+                              ],
                             ),
                           ],
                         ),
                       ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.inputFill,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text('Hoje',
+                            style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      )
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  children: [
+                    Container(
+                      height: 112,
+                      decoration: BoxDecoration(
+                        color: AppColors.panel,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.panelBorder),
+                      ),
+                      padding: const EdgeInsets.all(14),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${alertasResumo.critico}',
+                                style: const TextStyle(
+                                    color: AppColors.danger,
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 6),
+                            const Text('Alertas\nCríticos',
+                                style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      height: 112,
+                      decoration: BoxDecoration(
+                        color: AppColors.panel,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.panelBorder),
+                      ),
+                      padding: const EdgeInsets.all(14),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${alertasResumo.naoLidos}',
+                                style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 6),
+                            const Text('Alertas\nNão Lidos',
+                                style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -309,21 +400,24 @@ class HomePage extends StatelessWidget {
         child: Text(text, style: const TextStyle(color: AppColors.textSecondary)),
       );
 
-  Widget _alertCard(AlertaMock alerta) {
+  Widget _alertCard(Alerta alerta) {
     final cor = AppColors.nivelAlerta(alerta.nivel);
+    final lido = alerta.lidoEm != null;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: AppColors.panel,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: alerta.lido ? AppColors.panelBorder : cor.withOpacity(0.5)),
+        border: Border.all(color: lido ? AppColors.panelBorder : cor.withOpacity(0.5)),
       ),
       child: ListTile(
         leading: Icon(Icons.warning_amber_rounded, color: cor, size: 28),
-        title: Text(alerta.equipamento,
+        title: Text(alerta.equipamento.nome,
             style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
         subtitle: Text(alerta.descricao, style: const TextStyle(color: AppColors.textSecondary)),
-        trailing: Text(alerta.criadoEm, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        trailing: Text(_formatarHora(alerta.criadoEm),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        onTap: () => _abrirDetalhe(alerta),
       ),
     );
   }

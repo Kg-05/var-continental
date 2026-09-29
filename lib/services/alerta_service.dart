@@ -16,6 +16,13 @@ class AlertaService {
     return Alerta.fromJson(resposta['data'] as Map<String, dynamic>);
   }
 
+  /// Estatísticas agregadas (total, não lidos, contagem por nível) — usado
+  /// pelas dashboards (Início e Dashboard) para não depender de valores fixos.
+  static Future<ResumoAlertas> resumo() async {
+    final resposta = await ApiClient.get('/alertas/resumo');
+    return ResumoAlertas.fromJson(resposta['data'] as Map<String, dynamic>);
+  }
+
   /// Redefine nível, muda o status do tratamento (inclui pedir apoio à
   /// Central) e/ou deixa uma nota — mesmos campos aceites pelo
   /// PATCH /alertas/:id no backend. Todos os parâmetros são opcionais,

@@ -1,7 +1,32 @@
 import 'package:flutter/material.dart';
+import '../services/preferencias_service.dart';
 
-class Definicoes extends StatelessWidget {
+class Definicoes extends StatefulWidget {
   const Definicoes({super.key});
+
+  @override
+  State<Definicoes> createState() => _DefinicoesState();
+}
+
+class _DefinicoesState extends State<Definicoes> {
+  bool _receberAlertas = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarPreferencia();
+  }
+
+  Future<void> _carregarPreferencia() async {
+    final valor = await PreferenciasAlerta.receberAlertas();
+    if (!mounted) return;
+    setState(() => _receberAlertas = valor);
+  }
+
+  Future<void> _alterarReceberAlertas(bool valor) async {
+    setState(() => _receberAlertas = valor);
+    await PreferenciasAlerta.definirReceberAlertas(valor);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +63,9 @@ class Definicoes extends StatelessWidget {
             _buildTile(
               icon: Icons.notifications,
               title: "Receber Alertas",
-              subtitle: "Ativar/desativar recebimento de alertas.",
-              trailing: Switch(value: true, onChanged: (v) {}),
-              onTap: (){},
+              subtitle: "Ativar/desativar som e vibração dos alertas.",
+              trailing: Switch(value: _receberAlertas, onChanged: _alterarReceberAlertas),
+              onTap: () => _alterarReceberAlertas(!_receberAlertas),
             ),
             const Divider(color: Color.fromRGBO(98, 154, 183, 1)),
             _buildTile(

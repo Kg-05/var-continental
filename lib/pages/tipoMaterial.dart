@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+import '../services/preferencias_service.dart';
+
+/// Categorias fixas — o backend ainda não tem um campo de categoria por
+/// equipamento, por isso a seleção aqui é guardada (para o técnico não a
+/// perder), mas não filtra a lista de alertas enquanto esse campo não
+/// existir no modelo de Equipamento.
+const _categorias = ['Cabos', 'Disjuntores', 'Sensores', 'Fios expostos'];
 
 class Tipomaterial extends StatefulWidget {
   const Tipomaterial({super.key});
@@ -8,11 +15,33 @@ class Tipomaterial extends StatefulWidget {
 }
 
 class _TipomaterialState extends State<Tipomaterial> {
-  // Estados dos checkboxes
-  bool cabos = true;
-  bool disjuntores = false;
-  bool sensores = false;
-  bool fiosExpostos = false;
+  Set<String> _selecionados = {};
+  bool _carregando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarPreferencia();
+  }
+
+  Future<void> _carregarPreferencia() async {
+    final salvos = await PreferenciasAlerta.materiaisFiltrados();
+    if (!mounted) return;
+    setState(() {
+      // Vazio (nunca configurado) = tudo marcado por omissão.
+      _selecionados = salvos.isEmpty ? _categorias.toSet() : salvos;
+      _carregando = false;
+    });
+  }
+
+  Future<void> _confirmar() async {
+    await PreferenciasAlerta.definirMateriaisFiltrados(_selecionados);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Preferência guardada.')),
+    );
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,96 +57,60 @@ class _TipomaterialState extends State<Tipomaterial> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CheckboxListTile(
-              activeColor: Colors.blue,
-              checkColor: Colors.white,
-              title: const Text("Cabos", style: TextStyle(color: Colors.white)),
-              value: cabos,
-              onChanged: (val) {
-                setState(() => cabos = val!);
-              },
-            ),
-            CheckboxListTile(
-              activeColor: Colors.blue,
-              checkColor: Colors.white,
-              title:
-                  const Text("Disjuntores", style: TextStyle(color: Colors.white)),
-              value: disjuntores,
-              onChanged: (val) {
-                setState(() => disjuntores = val!);
-              },
-            ),
-            CheckboxListTile(
-              activeColor: Colors.blue,
-              checkColor: Colors.white,
-              title:
-                  const Text("Sensores", style: TextStyle(color: Colors.white)),
-              value: sensores,
-              onChanged: (val) {
-                setState(() => sensores = val!);
-              },
-            ),
-            CheckboxListTile(
-              activeColor: Colors.blue,
-              checkColor: Colors.white,
-              title: const Text("Fios expostos",
-                  style: TextStyle(color: Colors.white)),
-              value: fiosExpostos,
-              onChanged: (val) {
-                setState(() => fiosExpostos = val!);
-              },
-            ),
-            const SizedBox(height: 12),
-            InkWell(
-              onTap: () {
-                // lógica para adicionar nova localização
-              },
-              child: Row(
-                children: const [
-                  Icon(Icons.info, color: Colors.lightBlue),
-                  SizedBox(width: 8),
-                  Text(
-                    "Adicionar nova\nlocalização",
-                    style: TextStyle(
-                      color: Colors.white,
-                      decoration: TextDecoration.underline,
+      body: _carregando
+          ? const Center(child: CircularProgressIndicator(color: Colors.blue))
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final categoria in _categorias)
+                    CheckboxListTile(
+                      activeColor: Colors.blue,
+                      checkColor: Colors.white,
+                      title: Text(categoria, style: const TextStyle(color: Colors.white)),
+                      value: _selecionados.contains(categoria),
+                      onChanged: (val) {
+                        setState(() {
+                          if (val ?? false) {
+                            _selecionados.add(categoria);
+                          } else {
+                            _selecionados.remove(categoria);
+                          }
+                        });
+                      },
+                    ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Este filtro ainda não afeta a lista de alertas — o "
+                    "backend não regista a categoria de material por "
+                    "equipamento.",
+                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                  ),
+                  const Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 30),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _confirmar,
+                        child: const Text(
+                          "Confirmar Seleção",
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            const Spacer(),
-            Padding(
-              padding: EdgeInsetsGeometry.symmetric(vertical: 20, horizontal: 30),
-              child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () {
-                  // confirmar seleção
-                  debugPrint("Cabos: $cabos, Disjuntores: $disjuntores, Sensores: $sensores, Fios expostos: $fiosExpostos");
-                },
-                child: const Text(
-                  "Confirmar Seleção",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
-            ),
-              )
-          ],
-        ),
-      ),
     );
   }
 }

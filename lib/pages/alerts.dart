@@ -4,6 +4,7 @@ import '../widgets/confirm_exit_dialog.dart';
 import '../models/alerta.dart' as api;
 import '../services/alerta_service.dart';
 import '../services/api_client.dart';
+import '../services/preferencias_service.dart';
 import 'alert_detail.dart';
 
 class AlertsPage extends StatefulWidget {
@@ -18,6 +19,7 @@ class _AlertsPageState extends State<AlertsPage> {
   List<api.Alerta> alertasFiltrados = [];
   bool _mostrandoCampoPesquisa = false;
   String _termoPesquisa = "";
+  Set<String> _localizacoesFiltradas = {};
   bool _carregando = true;
   String? _erro;
 
@@ -33,10 +35,18 @@ class _AlertsPageState extends State<AlertsPage> {
       _erro = null;
     });
     try {
-      final lista = await AlertaService.listar();
+      final resultados = await Future.wait([
+        AlertaService.listar(),
+        PreferenciasAlerta.localizacoesFiltradas(),
+      ]);
       if (!mounted) return;
+      final lista = resultados[0] as List<api.Alerta>;
       setState(() {
         alertas = lista;
+        // Recarregada sempre que a página é aberta/atualizada, para
+        // refletir mudanças feitas em Definições > Localização do
+        // Equipamento sem precisar de reiniciar a app.
+        _localizacoesFiltradas = resultados[1] as Set<String>;
         alertasFiltrados = _aplicarFiltro(lista, _termoPesquisa);
         _carregando = false;
       });
@@ -56,8 +66,14 @@ class _AlertsPageState extends State<AlertsPage> {
   }
 
   List<api.Alerta> _aplicarFiltro(List<api.Alerta> lista, String termo) {
-    if (termo.isEmpty) return lista;
-    return lista.where((a) {
+    var resultado = lista;
+    if (_localizacoesFiltradas.isNotEmpty) {
+      resultado = resultado
+          .where((a) => _localizacoesFiltradas.contains(a.equipamento.localizacao))
+          .toList();
+    }
+    if (termo.isEmpty) return resultado;
+    return resultado.where((a) {
       return a.descricao.toLowerCase().contains(termo) ||
           a.equipamento.nome.toLowerCase().contains(termo);
     }).toList();
@@ -128,8 +144,8 @@ class _AlertsPageState extends State<AlertsPage> {
               setState(() {
                 _mostrandoCampoPesquisa = !_mostrandoCampoPesquisa;
                 if (!_mostrandoCampoPesquisa) {
-                  alertasFiltrados = alertas;
                   _termoPesquisa = "";
+                  alertasFiltrados = _aplicarFiltro(alertas, _termoPesquisa);
                 }
               });
             },

@@ -5,6 +5,9 @@ import 'pages/dashboard.dart';
 import 'pages/alerts.dart';
 import 'pages/profile.dart';
 import 'theme/app_colors.dart';
+import 'services/alerta_service.dart';
+import 'services/som_service.dart';
+import 'services/preferencias_service.dart';
 
 class Shell extends StatefulWidget {
   const Shell({super.key});
@@ -15,6 +18,9 @@ class Shell extends StatefulWidget {
 class _ShellState extends State<Shell> {
   int index = 0;
   late PageController _pageController;
+
+  bool _monitorAtivo = true;
+  int? _ultimoNaoLidos;
 
   final pages = const [
     HomePage(),
@@ -27,12 +33,44 @@ class _ShellState extends State<Shell> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: index);
+    _monitorarAlertas();
   }
 
   @override
   void dispose() {
+    _monitorAtivo = false;
     _pageController.dispose();
     super.dispose();
+  }
+
+  /// Verifica periodicamente se surgiram alertas novos e, nesse caso, toca
+  /// o som/vibração escolhido em Definições > Som de alerta. O intervalo é
+  /// lido de novo a cada ciclo, para reagir logo que o técnico mude a
+  /// Frequência de Atualização, sem precisar de reiniciar a app. A primeira
+  /// leitura só define o ponto de partida — não toca som ao abrir a app com
+  /// alertas por ler já existentes.
+  Future<void> _monitorarAlertas() async {
+    try {
+      _ultimoNaoLidos = (await AlertaService.resumo()).naoLidos;
+    } catch (_) {
+      // Sem ligação neste arranque — tenta de novo no próximo ciclo.
+    }
+
+    while (_monitorAtivo) {
+      final frequencia = await PreferenciasAlerta.frequencia();
+      await Future.delayed(Duration(seconds: frequencia.segundos));
+      if (!_monitorAtivo) return;
+
+      try {
+        final naoLidos = (await AlertaService.resumo()).naoLidos;
+        if (_ultimoNaoLidos != null && naoLidos > _ultimoNaoLidos!) {
+          await SomService.tocarAlerta();
+        }
+        _ultimoNaoLidos = naoLidos;
+      } catch (_) {
+        // Falha pontual de rede — tenta de novo no próximo ciclo.
+      }
+    }
   }
 
   void onPageChanged(int newIndex) {

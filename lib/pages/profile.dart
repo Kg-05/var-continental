@@ -1,14 +1,103 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_colors.dart';
 import '../services/session_store.dart';
+import '../services/usuario_service.dart';
+import '../services/api_client.dart';
+import '../models/usuario.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool _enviandoFoto = false;
+
+  Future<void> _escolherFonteEEnviar() async {
+    final origem = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AppColors.panel,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined, color: AppColors.textPrimary),
+              title: const Text('Tirar foto', style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () => Navigator.of(context).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: AppColors.textPrimary),
+              title: const Text('Escolher da galeria', style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (origem == null) return;
+
+    final usuario = SessionStore.usuario;
+    if (usuario == null) return;
+
+    try {
+      final XFile? ficheiro = await ImagePicker().pickImage(
+        source: origem,
+        imageQuality: 80,
+        maxWidth: 1024,
+      );
+      if (ficheiro == null) return;
+
+      setState(() => _enviandoFoto = true);
+
+      final novoAvatarUrl = await UsuarioService.atualizarAvatar(usuario.id, File(ficheiro.path));
+
+      SessionStore.usuario = Usuario(
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+        papel: usuario.papel,
+        empresaId: usuario.empresaId,
+        funcionario: usuario.funcionario,
+        avatarUrl: novoAvatarUrl,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Foto de perfil atualizada.'), backgroundColor: AppColors.success),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: AppColors.dangerDark),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível atualizar a foto de perfil.'),
+          backgroundColor: AppColors.dangerDark,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _enviandoFoto = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final usuario = SessionStore.usuario;
     final funcionario = usuario?.funcionario;
+    final avatarUrl = usuario?.avatarUrl;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -47,10 +136,45 @@ class ProfilePage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const CircleAvatar(
-                      radius: 48,
-                      backgroundColor: AppColors.inputFill,
-                      backgroundImage: AssetImage("assets/images/var_2.png"),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CircleAvatar(
+                          radius: 48,
+                          backgroundColor: AppColors.inputFill,
+                          backgroundImage: avatarUrl != null
+                              ? NetworkImage(ApiClient.urlFicheiro(avatarUrl))
+                              : const AssetImage("assets/images/var_2.png") as ImageProvider,
+                        ),
+                        if (_enviandoFoto)
+                          const Positioned.fill(
+                            child: CircleAvatar(
+                              radius: 48,
+                              backgroundColor: Colors.black45,
+                              child: SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                              ),
+                            ),
+                          ),
+                        Positioned(
+                          bottom: -2,
+                          right: -2,
+                          child: GestureDetector(
+                            onTap: _enviandoFoto ? null : _escolherFonteEEnviar,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppColors.accent,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppColors.panel, width: 2),
+                              ),
+                              child: const Icon(Icons.photo_camera, color: Colors.white, size: 18),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     Text(

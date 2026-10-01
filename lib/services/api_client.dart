@@ -22,6 +22,14 @@ class ApiClient {
   // Backend em produção (Railway).
   static const String baseUrl = 'https://var-mvp-continental.up.railway.app/api/v1';
 
+  // Ficheiros estáticos (avatares, etc.) são servidos na raiz do servidor,
+  // fora do prefixo /api/v1 — ex: avatarUrl "/uploads/imagens/x.jpg" vira
+  // "https://var-mvp-continental.up.railway.app/uploads/imagens/x.jpg".
+  static String urlFicheiro(String caminhoRelativo) {
+    final raiz = baseUrl.replaceFirst('/api/v1', '');
+    return '$raiz$caminhoRelativo';
+  }
+
   static Map<String, String> _headers() => {
         'Content-Type': 'application/json',
         if (SessionStore.token != null) 'Authorization': 'Bearer ${SessionStore.token}',

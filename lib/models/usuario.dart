@@ -30,6 +30,7 @@ class Usuario {
   final String papel;
   final String? empresaId;
   final Funcionario? funcionario;
+  final String? avatarUrl;
 
   const Usuario({
     required this.id,
@@ -38,6 +39,7 @@ class Usuario {
     required this.papel,
     this.empresaId,
     this.funcionario,
+    this.avatarUrl,
   });
 
   factory Usuario.fromJson(Map<String, dynamic> json) => Usuario(
@@ -49,5 +51,6 @@ class Usuario {
         funcionario: json['funcionario'] != null
             ? Funcionario.fromJson(json['funcionario'] as Map<String, dynamic>)
             : null,
+        avatarUrl: json['avatarUrl'] as String?,
       );
 }

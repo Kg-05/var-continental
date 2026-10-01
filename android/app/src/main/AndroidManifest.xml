@@ -3,6 +3,10 @@
          em builds release — os manifests debug/profile já a têm, injetada
          automaticamente pelo Flutter só para esses dois, não para release. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Foto de perfil: tirar foto com a câmara (a galeria não precisa de
+         permissão extra no Android 10+, usa o seletor de fotos do sistema). -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="var_continental"
         android:name="${applicationName}"

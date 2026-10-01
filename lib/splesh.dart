@@ -7,9 +7,12 @@ import 'package:var_continental/theme/app_colors.dart';
 // sítio para ser fácil de afinar sem caçar números pelo ficheiro todo.
 const double _tamanhoLogoInicial = 190;
 const double _tamanhoLogoReduzido = 140;
-const Duration _duracaoEntrada = Duration(milliseconds: 500);
-const Duration _duracaoReducao = Duration(milliseconds: 450);
-const Duration _duracaoComPontos = Duration(milliseconds: 1400);
+const Duration _duracaoEntrada = Duration(milliseconds: 400);
+// Tempo extra parado só com o logo, depois do fade-in — entrada + espera
+// = 1.8s com o logo sozinho no ecrã, como pedido.
+const Duration _duracaoEspera = Duration(milliseconds: 1400);
+const Duration _duracaoReducao = Duration(milliseconds: 500);
+const Duration _duracaoComPontos = Duration(milliseconds: 2500);
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -47,13 +50,16 @@ class _SplashPageState extends State<SplashPage>
 
     _entradaController.forward().whenComplete(() {
       if (!mounted) return;
-      _reducaoController.forward().whenComplete(() {
+      Future.delayed(_duracaoEspera, () {
         if (!mounted) return;
-        _dotsController.repeat();
+        _reducaoController.forward().whenComplete(() {
+          if (!mounted) return;
+          _dotsController.repeat();
+        });
       });
     });
 
-    final duracaoTotal = _duracaoEntrada + _duracaoReducao + _duracaoComPontos;
+    final duracaoTotal = _duracaoEntrada + _duracaoEspera + _duracaoReducao + _duracaoComPontos;
     Future.delayed(duracaoTotal, () {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(

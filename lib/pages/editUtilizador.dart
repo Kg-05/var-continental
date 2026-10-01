@@ -46,6 +46,7 @@ class _EditutilizadorState extends State<Editutilizador> {
         papel: usuario.papel,
         empresaId: usuario.empresaId,
         funcionario: usuario.funcionario,
+        avatarUrl: usuario.avatarUrl,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

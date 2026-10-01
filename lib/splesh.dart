@@ -3,6 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:var_continental/pages/login.dart';
 import 'package:var_continental/theme/app_colors.dart';
 
+// Tamanhos do logo nas duas fases e durações de cada etapa — tudo num só
+// sítio para ser fácil de afinar sem caçar números pelo ficheiro todo.
+const double _tamanhoLogoInicial = 190;
+const double _tamanhoLogoReduzido = 140;
+const Duration _duracaoEntrada = Duration(milliseconds: 500);
+const Duration _duracaoReducao = Duration(milliseconds: 450);
+const Duration _duracaoComPontos = Duration(milliseconds: 1400);
+
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -12,36 +20,41 @@ class SplashPage extends StatefulWidget {
 
 class _SplashPageState extends State<SplashPage>
     with TickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+  // Fase 1: logo a aparecer (fade + scale-in), sozinho, sem pontos.
+  late final AnimationController _entradaController;
+  late final Animation<double> _entrada;
 
-  // Anel de pontos a "processar" à volta do logo — gira continuamente
-  // enquanto a sessão é preparada, sem estar ligado a nenhum progresso real.
-  late AnimationController _dotsController;
+  // Fase 2: logo reduz de tamanho enquanto o anel de pontos aparece —
+  // as duas coisas ligadas ao mesmo controlador para ficarem sincronizadas.
+  late final AnimationController _reducaoController;
+  late final Animation<double> _tamanhoLogo;
+
+  // Fase 3: anel de pontos "a processar", em loop contínuo.
+  late final AnimationController _dotsController;
 
   @override
   void initState() {
     super.initState();
 
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    );
+    _entradaController = AnimationController(vsync: this, duration: _duracaoEntrada);
+    _entrada = CurvedAnimation(parent: _entradaController, curve: Curves.easeOut);
 
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    );
+    _reducaoController = AnimationController(vsync: this, duration: _duracaoReducao);
+    _tamanhoLogo = Tween<double>(begin: _tamanhoLogoInicial, end: _tamanhoLogoReduzido)
+        .animate(CurvedAnimation(parent: _reducaoController, curve: Curves.easeInOut));
 
-    _controller.forward();
+    _dotsController = AnimationController(vsync: this, duration: _duracaoComPontos);
 
-    _dotsController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..repeat();
+    _entradaController.forward().whenComplete(() {
+      if (!mounted) return;
+      _reducaoController.forward().whenComplete(() {
+        if (!mounted) return;
+        _dotsController.repeat();
+      });
+    });
 
-    // ⏳ depois de 3s vai para a LoginPage com transição suave
-    Future.delayed(const Duration(seconds: 5), () {
+    final duracaoTotal = _duracaoEntrada + _duracaoReducao + _duracaoComPontos;
+    Future.delayed(duracaoTotal, () {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
@@ -69,7 +82,8 @@ class _SplashPageState extends State<SplashPage>
 
   @override
   void dispose() {
-    _controller.dispose();
+    _entradaController.dispose();
+    _reducaoController.dispose();
     _dotsController.dispose();
     super.dispose();
   }
@@ -79,27 +93,38 @@ class _SplashPageState extends State<SplashPage>
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Center(
-        child: ScaleTransition(
-          scale: _animation,
-          child: SizedBox(
-            width: 260,
-            height: 260,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                AnimatedBuilder(
-                  animation: _dotsController,
-                  builder: (context, _) => _DotRing(animationValue: _dotsController.value),
-                ),
-                ClipOval(
-                  child: Image.asset(
-                    "assets/images/var_2.png",
-                    width: 160,
-                    height: 160,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ],
+        child: FadeTransition(
+          opacity: _entrada,
+          child: ScaleTransition(
+            scale: _entrada,
+            child: SizedBox(
+              width: 260,
+              height: 260,
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_reducaoController, _dotsController]),
+                builder: (context, _) {
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // O anel só aparece a partir da fase de redução —
+                      // a opacidade acompanha o mesmo progresso do encolher
+                      // do logo, para a transição ser uma coisa só.
+                      Opacity(
+                        opacity: _reducaoController.value,
+                        child: _DotRing(animationValue: _dotsController.value),
+                      ),
+                      ClipOval(
+                        child: Image.asset(
+                          "assets/images/var_2.png",
+                          width: _tamanhoLogo.value,
+                          height: _tamanhoLogo.value,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),

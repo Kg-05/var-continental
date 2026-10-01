@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mesma cor de AppColors.background (lib/theme/app_colors.dart) —
+         usada no ecrã nativo de arranque para não dar "flash" branco
+         antes do SplashPage em Dart aparecer. -->
+    <color name="launch_background">#FF040928</color>
+</resources>

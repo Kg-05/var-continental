@@ -3,7 +3,7 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Mesma cor de fundo do SplashPage em Dart (AppColors.background) —
          evita o "flash" branco antes do Flutter arrancar. -->
-    <item android:drawable="#FF040928" />
+    <item android:drawable="@color/launch_background" />
 
     <item>
         <bitmap

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import '../widgets/confirm_exit_dialog.dart';
 import '../models/alerta.dart' as api;
 import '../services/alerta_service.dart';
 import '../services/api_client.dart';
 import '../services/preferencias_service.dart';
+import '../services/locale_aware_mixin.dart';
+import '../l10n/strings.dart';
 import 'alert_detail.dart';
 
 class AlertsPage extends StatefulWidget {
@@ -14,7 +15,7 @@ class AlertsPage extends StatefulWidget {
   State<AlertsPage> createState() => _AlertsPageState();
 }
 
-class _AlertsPageState extends State<AlertsPage> {
+class _AlertsPageState extends State<AlertsPage> with LocaleAware<AlertsPage> {
   List<api.Alerta> alertas = [];
   List<api.Alerta> alertasFiltrados = [];
   bool _mostrandoCampoPesquisa = false;
@@ -128,16 +129,15 @@ class _AlertsPageState extends State<AlertsPage> {
                 onChanged: _filtrarAlertas,
                 style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
                 cursorColor: AppColors.accent,
-                decoration: const InputDecoration(
-                  hintText: "Pesquisar alertas...",
-                  hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: AppStrings.t('alertas.pesquisar'),
+                  hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
                   border: InputBorder.none,
-                  icon: Icon(Icons.search, color: AppColors.textSecondary),
+                  icon: const Icon(Icons.search, color: AppColors.textSecondary),
                 ),
               )
-            : const Text("Alertas", style: TextStyle(color: AppColors.textPrimary)),
+            : Text(AppStrings.t('alertas.titulo'), style: const TextStyle(color: AppColors.textPrimary)),
         centerTitle: true,
-        leading: const ExitButton(),
         actions: [
           IconButton(
             onPressed: () {
@@ -177,7 +177,7 @@ class _AlertsPageState extends State<AlertsPage> {
               ElevatedButton(
                 onPressed: _carregar,
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
-                child: const Text('Tentar novamente'),
+                child: Text(AppStrings.t('alertas.tentarNovamente')),
               ),
             ],
           ),
@@ -185,10 +185,10 @@ class _AlertsPageState extends State<AlertsPage> {
       );
     }
     if (alertasFiltrados.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          "Nenhum alerta encontrado",
-          style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+          AppStrings.t('alertas.nenhum'),
+          style: const TextStyle(fontSize: 16, color: AppColors.textSecondary),
         ),
       );
     }

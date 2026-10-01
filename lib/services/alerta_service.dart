@@ -41,4 +41,12 @@ class AlertaService {
     final resposta = await ApiClient.patch('/alertas/$id', body);
     return Alerta.fromJson(resposta['data'] as Map<String, dynamic>);
   }
+
+  /// Marca o alerta como lido (PATCH /alertas/:id/ler) — chamado ao abrir
+  /// o detalhe de um alerta por ler, para que a contagem de "não lidos"
+  /// nas dashboards reflita a leitura.
+  static Future<Alerta> marcarComoLido(String id) async {
+    final resposta = await ApiClient.patch('/alertas/$id/ler', {});
+    return Alerta.fromJson(resposta['data'] as Map<String, dynamic>);
+  }
 }

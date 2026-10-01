@@ -8,6 +8,8 @@ import 'theme/app_colors.dart';
 import 'services/alerta_service.dart';
 import 'services/som_service.dart';
 import 'services/preferencias_service.dart';
+import 'services/locale_aware_mixin.dart';
+import 'l10n/strings.dart';
 
 class Shell extends StatefulWidget {
   const Shell({super.key});
@@ -15,7 +17,7 @@ class Shell extends StatefulWidget {
   State<Shell> createState() => _ShellState();
 }
 
-class _ShellState extends State<Shell> {
+class _ShellState extends State<Shell> with LocaleAware<Shell> {
   int index = 0;
   late PageController _pageController;
 
@@ -141,30 +143,30 @@ class _ShellState extends State<Shell> {
               borderRadius: BorderRadius.circular(50),
               border: Border.all(color: AppColors.panelBorder),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _NavItem(
-                  label: 'Início',
+                  label: AppStrings.t('nav.inicio'),
                   icon: Icons.home_rounded,
                   onTap: () => onNavTap(0),
                   active: index == 0,
                 ),
                 _NavItem(
-                  label: 'Dashboard',
+                  label: AppStrings.t('nav.dashboard'),
                   icon: Icons.dashboard_rounded,
                   onTap: () => onNavTap(1),
                   active: index == 1,
                 ),
                 _NavItem(
-                  label: 'Alertas',
+                  label: AppStrings.t('nav.alertas'),
                   icon: Icons.notifications_none_rounded,
                   onTap: () => onNavTap(2),
                   active: index == 2,
                 ),
                 _NavItem(
-                  label: 'Perfil',
+                  label: AppStrings.t('nav.perfil'),
                   icon: Icons.person,
                   onTap: () => onNavTap(3),
                   active: index == 3,

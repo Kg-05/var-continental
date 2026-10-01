@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import '../widgets/confirm_exit_dialog.dart';
 import '../models/alerta.dart';
 import '../models/equipamento.dart';
 import '../services/alerta_service.dart';
 import '../services/equipamento_service.dart';
 import '../services/api_client.dart';
+import '../services/locale_aware_mixin.dart';
+import '../l10n/strings.dart';
 
 /// Dashboard com dados reais: estatísticas de equipamentos vêm de
 /// GET /equipamentos/resumo e de alertas de GET /alertas/resumo — ambos já
@@ -18,7 +19,7 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardPageState extends State<DashboardPage> with LocaleAware<DashboardPage> {
   ResumoEquipamentos? _equipamentos;
   ResumoAlertas? _alertas;
   bool _carregando = true;
@@ -78,23 +79,10 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const ExitButton(),
-                  const Text('Dashboard',
-                      style: TextStyle(
-                          color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.of(context).pushNamed("/Definicoes");
-                    },
-                    icon: const Icon(Icons.settings),
-                    color: AppColors.textPrimary,
-                    iconSize: 28,
-                  )
-                ],
-              ),
+              alignment: Alignment.center,
+              child: Text(AppStrings.t('dashboard.titulo'),
+                  style: const TextStyle(
+                      color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
             ),
             Expanded(child: _corpo()),
           ],
@@ -141,14 +129,14 @@ class _DashboardPageState extends State<DashboardPage> {
         children: [
           _cardLarge(
             value: '${equipamentos.total}',
-            title: 'Total de Equipamentos\nMonitorados',
+            title: AppStrings.t('dashboard.totalEquipamentos'),
             progress: percentOperacional,
-            trailing: '${(percentOperacional * 100).round()}% operacional',
+            trailing: '${(percentOperacional * 100).round()}% ${AppStrings.t('home.operacional')}',
           ),
           const SizedBox(height: 10),
           _cardLarge(
             value: '${equipamentos.comAlertasPorResolver}',
-            title: 'Equipamentos com\nAlertas por Resolver',
+            title: AppStrings.t('dashboard.comAlertas'),
             progress: equipamentos.total == 0
                 ? 0
                 : equipamentos.comAlertasPorResolver / equipamentos.total,
@@ -159,7 +147,7 @@ class _DashboardPageState extends State<DashboardPage> {
               Expanded(
                 child: _cardSmallIcon(
                   value: '${alertas.critico}',
-                  title: 'Alertas\nCríticos',
+                  title: AppStrings.t('dashboard.alertasCriticos'),
                   icon: Icons.report_problem_rounded,
                   accent: AppColors.danger,
                 ),
@@ -168,7 +156,7 @@ class _DashboardPageState extends State<DashboardPage> {
               Expanded(
                 child: _cardSmallIcon(
                   value: '${alertas.naoLidos}',
-                  title: 'Alertas\nNão Lidos',
+                  title: AppStrings.t('dashboard.alertasNaoLidos'),
                   icon: Icons.mark_email_unread_rounded,
                   accent: AppColors.accent,
                 ),
@@ -193,12 +181,12 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Distribuição\npor Estado',
-                          style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
+                      Text(AppStrings.t('dashboard.distribuicaoEstado'),
+                          style: const TextStyle(color: AppColors.textSecondary, height: 1.2)),
                       const Spacer(),
-                      _legendaEstado('Operacional', equipamentos.operacional, AppColors.success),
+                      _legendaEstado(AppStrings.t('dashboard.operacional'), equipamentos.operacional, AppColors.success),
                       const SizedBox(height: 4),
-                      _legendaEstado('Manutenção', equipamentos.manutencao, AppColors.warning),
+                      _legendaEstado(AppStrings.t('dashboard.manutencao'), equipamentos.manutencao, AppColors.warning),
                     ],
                   ),
                 ),
@@ -342,9 +330,9 @@ class _DashboardPageState extends State<DashboardPage> {
             child: const Icon(Icons.build_rounded, color: Colors.white),
           ),
           const SizedBox(width: 12),
-          const Expanded(
-            child: Text('Equipamentos\nem Manutenção',
-                style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
+          Expanded(
+            child: Text(AppStrings.t('dashboard.emManutencao'),
+                style: const TextStyle(color: AppColors.textSecondary, height: 1.2)),
           ),
           const SizedBox(width: 8),
           Text('$equipamentosManutencao',

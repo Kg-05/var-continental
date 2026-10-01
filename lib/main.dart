@@ -11,14 +11,40 @@ import 'package:var_continental/pages/privacidade.dart';
 import 'package:var_continental/pages/seguranca.dart';
 import 'package:var_continental/pages/somAlerta.dart';
 import 'package:var_continental/pages/tipoMaterial.dart';
+import 'package:var_continental/services/locale_service.dart';
 import 'package:var_continental/shell.dart';
 import 'package:var_continental/splesh.dart';
 import 'pages/login.dart'; // Adicione esta importação
 
 void main() => runApp(const MyApp());
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Carrega o idioma guardado e reconstrói a app quando o utilizador o
+    // trocar em Definições > Idioma — é isto que faz a troca "sentir-se"
+    // em toda a app, em vez de só no próprio ecrã de idioma.
+    LocaleController.instance.addListener(_aoMudarIdioma);
+    LocaleController.instance.carregar();
+  }
+
+  @override
+  void dispose() {
+    LocaleController.instance.removeListener(_aoMudarIdioma);
+    super.dispose();
+  }
+
+  void _aoMudarIdioma() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {

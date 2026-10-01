@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/preferencias_service.dart';
+import '../services/locale_aware_mixin.dart';
+import '../l10n/strings.dart';
 
 class Definicoes extends StatefulWidget {
   const Definicoes({super.key});
@@ -8,7 +10,7 @@ class Definicoes extends StatefulWidget {
   State<Definicoes> createState() => _DefinicoesState();
 }
 
-class _DefinicoesState extends State<Definicoes> {
+class _DefinicoesState extends State<Definicoes> with LocaleAware<Definicoes> {
   bool _receberAlertas = true;
 
   @override
@@ -37,7 +39,7 @@ class _DefinicoesState extends State<Definicoes> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
-        title: const Text("Definições"),
+        title: Text(AppStrings.t('definicoes.titulo')),
         centerTitle: true,
 
         // Botão voltar (sempre volta para a tela anterior)
@@ -45,14 +47,6 @@ class _DefinicoesState extends State<Definicoes> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-
-        // Ícone do lado direito
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.settings),
-          ),
-        ],
       ),
 
       body: ListView(
@@ -62,7 +56,7 @@ class _DefinicoesState extends State<Definicoes> {
           _buildSection([
             _buildTile(
               icon: Icons.notifications,
-              title: "Receber Alertas",
+              title: AppStrings.t('definicoes.receberAlertas'),
               subtitle: "Ativar/desativar som e vibração dos alertas.",
               trailing: Switch(value: _receberAlertas, onChanged: _alterarReceberAlertas),
               onTap: () => _alterarReceberAlertas(!_receberAlertas),
@@ -70,19 +64,19 @@ class _DefinicoesState extends State<Definicoes> {
             const Divider(color: Color.fromRGBO(98, 154, 183, 1)),
             _buildTile(
               icon: Icons.volume_up,
-              title: "Som de alerta",
+              title: AppStrings.t('definicoes.somAlerta'),
               subtitle: "Escolher o som: Padrão, Vibrar, Silencioso.",
               trailing: const Icon(Icons.arrow_forward_ios,
                   color: Colors.white, size: 16),
                    onTap: (){
                     Navigator.of(context).pushNamed("/Somalarta");
                    },
-                  
+
             ),
             const Divider(color: Color.fromRGBO(98, 154, 183, 1)),
             _buildTile(
               icon: Icons.update,
-              title: "Frequência de Atualização",
+              title: AppStrings.t('definicoes.frequencia'),
               subtitle: "Ex.: A cada 5 min, 15 min, em tempo real.",
               trailing: const Icon(Icons.arrow_forward_ios,
                   color: Colors.white, size: 16),
@@ -95,9 +89,9 @@ class _DefinicoesState extends State<Definicoes> {
           const SizedBox(height: 24),
 
           // ====== FILTRO DE ALERTA ======
-          const Text(
-            "FILTRO DE ALERTA",
-            style: TextStyle(
+          Text(
+            AppStrings.t('definicoes.secaoFiltro'),
+            style: const TextStyle(
                 color: Color.fromRGBO(98, 154, 183, 1),
                 fontWeight: FontWeight.bold),
           ),
@@ -105,7 +99,7 @@ class _DefinicoesState extends State<Definicoes> {
           _buildSection([
             _buildTile(
               icon: Icons.handyman,
-              title: "Tipo de Material",
+              title: AppStrings.t('definicoes.tipoMaterial'),
               subtitle:
                   "Permitir escolher quais materiais deseja monitorar.",
               trailing: const Icon(Icons.arrow_forward_ios,
@@ -117,7 +111,7 @@ class _DefinicoesState extends State<Definicoes> {
             const Divider(color: Color.fromRGBO(98, 154, 183, 1)),
             _buildTile(
               icon: Icons.place,
-              title: "Localização do Equipamento",
+              title: AppStrings.t('definicoes.localizacao'),
               subtitle:
                   "Definir zonas/áreas para receber alertas específicos.",
               trailing: const Icon(Icons.arrow_forward_ios,
@@ -131,9 +125,9 @@ class _DefinicoesState extends State<Definicoes> {
           const SizedBox(height: 24),
 
           // ====== CONTA ======
-          const Text(
-            "CONTA",
-            style: TextStyle(
+          Text(
+            AppStrings.t('definicoes.secaoConta'),
+            style: const TextStyle(
                 color: Color.fromRGBO(98, 154, 183, 1),
                 fontWeight: FontWeight.bold),
           ),
@@ -141,7 +135,7 @@ class _DefinicoesState extends State<Definicoes> {
           _buildSection([
             _buildTile(
               icon: Icons.person,
-              title: "Perfil do Utilizador",
+              title: AppStrings.t('definicoes.perfilUtilizador'),
               subtitle: "Editar nome, email",
               trailing: const Icon(Icons.arrow_forward_ios,
                   color: Colors.white, size: 16),
@@ -152,7 +146,7 @@ class _DefinicoesState extends State<Definicoes> {
             const Divider(color: Color.fromRGBO(98, 154, 183, 1)),
             _buildTile(
               icon: Icons.lock,
-              title: "Segurança",
+              title: AppStrings.t('definicoes.seguranca'),
               subtitle:
                   "Biometria, PIN ou autenticação em dois fatores (2FA)",
               trailing: const Icon(Icons.arrow_forward_ios,

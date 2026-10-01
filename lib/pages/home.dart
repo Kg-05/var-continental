@@ -6,6 +6,8 @@ import '../models/equipamento.dart';
 import '../services/alerta_service.dart';
 import '../services/equipamento_service.dart';
 import '../services/api_client.dart';
+import '../services/locale_aware_mixin.dart';
+import '../l10n/strings.dart';
 import 'alert_detail.dart';
 
 /// Início com dados reais: estatísticas e os 3 alertas mais recentes vêm da
@@ -18,12 +20,17 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with LocaleAware<HomePage> {
   ResumoEquipamentos? _equipamentos;
   ResumoAlertas? _alertasResumo;
-  List<Alerta> _recentes = [];
+  List<Alerta> _todosAlertas = [];
+  List<Alerta> _exibidos = [];
   bool _carregando = true;
   String? _erro;
+
+  // 'todos' | 'criticos' | 'naoLidos'
+  String _filtroChip = 'todos';
+  String _termoPesquisa = '';
 
   @override
   void initState() {
@@ -47,7 +54,8 @@ class _HomePageState extends State<HomePage> {
         _equipamentos = resultados[0] as ResumoEquipamentos;
         _alertasResumo = resultados[1] as ResumoAlertas;
         // Já vem ordenado por nível (desc) e depois por data (desc) do backend.
-        _recentes = (resultados[2] as List<Alerta>).take(3).toList();
+        _todosAlertas = resultados[2] as List<Alerta>;
+        _exibidos = _aplicarFiltros();
         _carregando = false;
       });
     } on ApiException catch (e) {
@@ -63,6 +71,44 @@ class _HomePageState extends State<HomePage> {
         _carregando = false;
       });
     }
+  }
+
+  /// Sem filtro nenhum ativo mostramos só os 3 mais recentes (vista rápida);
+  /// assim que um chip ou a pesquisa estiverem ativos, mostramos tudo o que
+  /// corresponder, sem limite artificial.
+  List<Alerta> _aplicarFiltros() {
+    var lista = _todosAlertas;
+
+    if (_filtroChip == 'criticos') {
+      lista = lista.where((a) => a.nivel == 'critico').toList();
+    } else if (_filtroChip == 'naoLidos') {
+      lista = lista.where((a) => a.lidoEm == null).toList();
+    }
+
+    final termo = _termoPesquisa.trim().toLowerCase();
+    if (termo.isNotEmpty) {
+      lista = lista.where((a) {
+        return a.descricao.toLowerCase().contains(termo) ||
+            a.equipamento.nome.toLowerCase().contains(termo);
+      }).toList();
+    }
+
+    final semFiltro = _filtroChip == 'todos' && termo.isEmpty;
+    return semFiltro ? lista.take(3).toList() : lista;
+  }
+
+  void _selecionarChip(String chip) {
+    setState(() {
+      _filtroChip = chip;
+      _exibidos = _aplicarFiltros();
+    });
+  }
+
+  void _pesquisar(String termo) {
+    setState(() {
+      _termoPesquisa = termo;
+      _exibidos = _aplicarFiltros();
+    });
   }
 
   Future<void> _abrirDetalhe(Alerta alerta) async {
@@ -98,8 +144,8 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const ExitButton(),
-                      const Text('Início',
-                          style: TextStyle(
+                      Text(AppStrings.t('nav.inicio'),
+                          style: const TextStyle(
                               color: AppColors.textPrimary,
                               fontSize: 18,
                               fontWeight: FontWeight.w700)),
@@ -122,8 +168,8 @@ class _HomePageState extends State<HomePage> {
                         color: AppColors.accent.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(18),
                       ),
-                      child: const Text('Alertas recentes',
-                          style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w500)),
+                      child: Text(AppStrings.t('home.alertasRecentes'),
+                          style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w500)),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -143,26 +189,33 @@ class _HomePageState extends State<HomePage> {
                           child: TextField(
                             style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
                             cursorColor: AppColors.accent,
-                            decoration: const InputDecoration(
-                              icon: Icon(Icons.search, color: AppColors.textSecondary, size: 20),
-                              hintText: "Pesquisar equipamento ou alerta...",
-                              hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 14),
+                            onChanged: _pesquisar,
+                            decoration: InputDecoration(
+                              icon: const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+                              hintText: AppStrings.t('home.pesquisar'),
+                              hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 14),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            onSubmitted: (value) {
-                              // A pesquisa detalhada já existe no ecrã de Alertas;
-                              // aqui mostramos apenas o resumo dos mais recentes.
-                            },
                           ),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      SizedBox(
-                        height: 44,
-                        width: 44,
-                        child: ClipOval(
-                          child: Image.asset("assets/images/var_2.png", fit: BoxFit.cover),
+                      InkWell(
+                        onTap: _carregando ? null : _carregar,
+                        customBorder: const CircleBorder(),
+                        child: SizedBox(
+                          height: 44,
+                          width: 44,
+                          child: _carregando
+                              ? const Padding(
+                                  padding: EdgeInsets.all(10),
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2.5, color: AppColors.accent),
+                                )
+                              : ClipOval(
+                                  child: Image.asset("assets/images/var_2.png", fit: BoxFit.cover),
+                                ),
                         ),
                       ),
                     ],
@@ -172,11 +225,11 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _chip('Todos'),
+                      _chip(AppStrings.t('home.chip.todos'), 'todos'),
                       const SizedBox(width: 10),
-                      _chip('Críticos'),
+                      _chip(AppStrings.t('home.chip.criticos'), 'criticos'),
                       const SizedBox(width: 10),
-                      _chip('Não lidos'),
+                      _chip(AppStrings.t('home.chip.naoLidos'), 'naoLidos'),
                     ],
                   ),
                 ],
@@ -225,7 +278,7 @@ class _HomePageState extends State<HomePage> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
         children: [
-          if (_recentes.isEmpty)
+          if (_exibidos.isEmpty)
             Container(
               padding: const EdgeInsets.all(20),
               margin: const EdgeInsets.only(bottom: 10),
@@ -234,13 +287,17 @@ class _HomePageState extends State<HomePage> {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: AppColors.panelBorder),
               ),
-              child: const Center(
-                child: Text('Sem alertas recentes',
-                    style: TextStyle(color: AppColors.textSecondary)),
+              child: Center(
+                child: Text(
+                  _filtroChip == 'todos' && _termoPesquisa.trim().isEmpty
+                      ? AppStrings.t('home.semAlertas')
+                      : AppStrings.t('home.nenhumEncontrado'),
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
               ),
             )
           else
-            ..._recentes.map(_alertCard),
+            ..._exibidos.map(_alertCard),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,12 +314,12 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Row(
+                      Row(
                         children: [
-                          Icon(Icons.sensors_rounded, size: 16, color: AppColors.textSecondary),
-                          SizedBox(width: 6),
-                          Text('Equipamentos\nOperacionais',
-                              style: TextStyle(
+                          const Icon(Icons.sensors_rounded, size: 16, color: AppColors.textSecondary),
+                          const SizedBox(width: 6),
+                          Text(AppStrings.t('home.equipamentosOperacionais'),
+                              style: const TextStyle(
                                   color: AppColors.textPrimary,
                                   fontWeight: FontWeight.w600,
                                   height: 1.2)),
@@ -304,7 +361,7 @@ class _HomePageState extends State<HomePage> {
                                         fontSize: 18,
                                         fontWeight: FontWeight.w800)),
                                 const SizedBox(height: 2),
-                                Text('${(percentOperacional * 100).round()}% operacional',
+                                Text('${(percentOperacional * 100).round()}% ${AppStrings.t('home.operacional')}',
                                     style: const TextStyle(
                                         color: AppColors.textSecondary, fontSize: 12)),
                               ],
@@ -318,8 +375,8 @@ class _HomePageState extends State<HomePage> {
                           color: AppColors.inputFill,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text('Hoje',
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        child: Text(AppStrings.t('home.hoje'),
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                       )
                     ],
                   ),
@@ -348,8 +405,8 @@ class _HomePageState extends State<HomePage> {
                                     fontSize: 26,
                                     fontWeight: FontWeight.w800)),
                             const SizedBox(height: 6),
-                            const Text('Alertas\nCríticos',
-                                style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
+                            Text(AppStrings.t('home.alertasCriticos'),
+                                style: const TextStyle(color: AppColors.textSecondary, height: 1.2)),
                           ],
                         ),
                       ),
@@ -374,8 +431,8 @@ class _HomePageState extends State<HomePage> {
                                     fontSize: 26,
                                     fontWeight: FontWeight.w800)),
                             const SizedBox(height: 6),
-                            const Text('Alertas\nNão Lidos',
-                                style: TextStyle(color: AppColors.textSecondary, height: 1.2)),
+                            Text(AppStrings.t('home.alertasNaoLidos'),
+                                style: const TextStyle(color: AppColors.textSecondary, height: 1.2)),
                           ],
                         ),
                       ),
@@ -390,15 +447,28 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _chip(String text) => Container(
+  Widget _chip(String texto, String valor) {
+    final selecionado = _filtroChip == valor;
+    return InkWell(
+      onTap: () => _selecionarChip(valor),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: AppColors.inputFill,
+          color: selecionado ? AppColors.accent.withOpacity(0.2) : AppColors.inputFill,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: selecionado ? AppColors.accent : AppColors.border),
         ),
-        child: Text(text, style: const TextStyle(color: AppColors.textSecondary)),
-      );
+        child: Text(
+          texto,
+          style: TextStyle(
+            color: selecionado ? AppColors.accent : AppColors.textSecondary,
+            fontWeight: selecionado ? FontWeight.w700 : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _alertCard(Alerta alerta) {
     final cor = AppColors.nivelAlerta(alerta.nivel);

@@ -23,6 +23,11 @@ class _AlertDetailPageState extends State<AlertDetailPage> {
   bool _salvando = false;
   String? _erroCarregamento;
 
+  // true assim que o alerta for marcado como lido (ao abrir) — usado para
+  // a lista de origem (Alertas/Início) saber que deve recarregar ao voltar,
+  // mesmo que o técnico não guarde nenhuma alteração.
+  bool _marcouLido = false;
+
   late String _nivelSelecionado;
   late String _statusSelecionado;
   final TextEditingController _notaController = TextEditingController();
@@ -45,7 +50,16 @@ class _AlertDetailPageState extends State<AlertDetailPage> {
       _erroCarregamento = null;
     });
     try {
-      final alerta = await AlertaService.buscarPorId(widget.alertaId);
+      var alerta = await AlertaService.buscarPorId(widget.alertaId);
+      if (alerta.lidoEm == null) {
+        try {
+          alerta = await AlertaService.marcarComoLido(alerta.id);
+          _marcouLido = true;
+        } catch (_) {
+          // Falha a marcar como lido não deve impedir ver o alerta —
+          // o técnico pode tentar de novo noutra visita ao ecrã.
+        }
+      }
       if (!mounted) return;
       setState(() {
         _alerta = alerta;
@@ -132,6 +146,10 @@ class _AlertDetailPageState extends State<AlertDetailPage> {
         backgroundColor: AppColors.panel,
         title: const Text('Detalhe do alerta', style: TextStyle(color: AppColors.textPrimary)),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(_marcouLido),
+        ),
       ),
       body: _carregando
           ? const Center(child: CircularProgressIndicator(color: AppColors.accent))

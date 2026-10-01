@@ -4,6 +4,8 @@ import '../components/customInput.dart';
 import '../theme/app_colors.dart';
 import '../services/auth_service.dart';
 import '../services/api_client.dart';
+import '../services/locale_aware_mixin.dart';
+import '../l10n/strings.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,7 +14,7 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage> with LocaleAware<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController senhaController = TextEditingController();
 
@@ -24,8 +26,8 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isEmpty || senha.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Preencha todos os campos!"),
+        SnackBar(
+          content: Text(AppStrings.t('login.camposObrigatorios')),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -42,10 +44,10 @@ class _LoginPageState extends State<LoginPage> {
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("👋 Bem-vindo ao sistema!"),
+          SnackBar(
+            content: Text(AppStrings.t('login.boasVindas')),
             backgroundColor: AppColors.accent,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       });
@@ -57,8 +59,8 @@ class _LoginPageState extends State<LoginPage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Não foi possível iniciar sessão. Tenta novamente."),
+        SnackBar(
+          content: Text(AppStrings.t('login.erroGenerico')),
           backgroundColor: AppColors.dangerDark,
         ),
       );
@@ -103,18 +105,18 @@ class _LoginPageState extends State<LoginPage> {
                     child: Image.asset("assets/images/var.png"),
                   ),
                   SizedBox(height: screenHeight * 0.02),
-                  const Text(
-                    "Bem-vindo",
-                    style: TextStyle(
+                  Text(
+                    AppStrings.t('login.bemVindo'),
+                    style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 28,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    "Entra com o teu email de técnico",
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                  Text(
+                    AppStrings.t('login.subtitulo'),
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                   ),
                   SizedBox(height: screenHeight * 0.04),
                   Padding(
@@ -126,7 +128,7 @@ class _LoginPageState extends State<LoginPage> {
                       controller: emailController,
                       suffixIcon: const Icon(Icons.email_outlined),
                       visibility: true,
-                      text: "Digite o teu email",
+                      text: AppStrings.t('login.emailHint'),
                     ),
                   ),
                   Padding(
@@ -138,7 +140,7 @@ class _LoginPageState extends State<LoginPage> {
                       controller: senhaController,
                       suffixIcon: const Icon(Icons.lock_outline),
                       visibility: false,
-                      text: "Digite a tua senha",
+                      text: AppStrings.t('login.senhaHint'),
                       obscureText: true,
                     ),
                   ),
@@ -166,9 +168,9 @@ class _LoginPageState extends State<LoginPage> {
                                   strokeWidth: 2.5,
                                 ),
                               )
-                            : const Text(
-                                "Entrar",
-                                style: TextStyle(
+                            : Text(
+                                AppStrings.t('login.entrar'),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
